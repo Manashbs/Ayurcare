@@ -1,0 +1,280 @@
+'use client';
+
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { Loader2, Bot, Send, ShieldAlert, Sparkles, User, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+function PatientAiChat() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMsg, setInputMsg] = useState('');
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  
+  const [loading, setLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [emergencyFlagged, setEmergencyFlagged] = useState(false);
+  
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const initialPrompt = searchParams.get('prompt');
+
+  const fetchSession = async () => {
+    setSessionLoading(true);
+    try {
+      const res = await fetch('/api/patient/ai-chat');
+      if (res.ok) {
+        const json = await res.json();
+        const sessions = json.sessions || [];
+        if (sessions.length > 0) {
+          const latest = sessions[0];
+          setSessionId(latest.id);
+          setMessages(JSON.parse(latest.messages || '[]'));
+          setEmergencyFlagged(latest.flaggedForReview);
+        } else {
+          setMessages([
+            {
+              role: 'assistant',
+              content: 'Namaste! I am PrakritiAI, your Ayurvedic Wellness Assistant. I can recommend home remedies, herbal information, and dietary tips based on Vata, Pitta, and Kapha balances.\n\nHow can I help you today? (e.g. tell me about indigestion, sleep remedies, stress, or skin breakout remedies)',
+            }
+          ]);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Handle URL pre-seeded prompts automatically
+  useEffect(() => {
+    if (!sessionLoading && initialPrompt && messages.length <= 1) {
+      const sendInitialPrompt = async () => {
+        const userQuery = initialPrompt.trim();
+        const updatedMessages = [...messages, { role: 'user', content: userQuery } as ChatMessage];
+        setMessages(updatedMessages);
+        setLoading(true);
+
+        try {
+          const res = await fetch('/api/patient/ai-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId,
+              message: userQuery,
+            }),
+          });
+
+          if (res.ok) {
+            const json = await res.json();
+            setSessionId(json.sessionId);
+            setMessages(json.history);
+            if (json.flagged) {
+              setEmergencyFlagged(true);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      sendInitialPrompt();
+    }
+  }, [sessionLoading, initialPrompt]);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMsg.trim() || loading) return;
+
+    const userQuery = inputMsg.trim();
+    setInputMsg('');
+    
+    const updatedMessages = [...messages, { role: 'user', content: userQuery } as ChatMessage];
+    setMessages(updatedMessages);
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/patient/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          message: userQuery,
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        setSessionId(json.sessionId);
+        setMessages(json.history);
+        if (json.flagged) {
+          setEmergencyFlagged(true);
+        }
+      } else {
+        const json = await res.json();
+        setMessages([
+          ...updatedMessages,
+          { role: 'assistant', content: `⚠️ Error: ${json.error || 'Server connection failed.'}` }
+        ]);
+      }
+    } catch (err) {
+      setMessages([
+        ...updatedMessages,
+        { role: 'assistant', content: '⚠️ Server connection error. Please try again.' }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSession = () => {
+    if (confirm('Start a fresh conversation? This clears the active chat window.')) {
+      setSessionId(null);
+      setEmergencyFlagged(false);
+      setMessages([
+        {
+          role: 'assistant',
+          content: 'Namaste! I am PrakritiAI, your Ayurvedic Wellness Assistant. How can I help you with your health balance today?',
+        }
+      ]);
+    }
+  };
+
+  return (
+    <div className="flex-grow flex flex-col font-sans max-w-4xl mx-auto w-full h-[80vh] border border-slate-100 bg-white rounded-2xl shadow-lg overflow-hidden relative">
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary-750 via-gold-600 to-primary-750 z-10"></div>
+
+      {/* Bot Chat Header */}
+      <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="font-display font-bold text-slate-800 flex items-center text-sm sm:text-base">
+              PrakritiAI <Sparkles className="w-4 h-4 text-gold-600 ml-1.5 fill-gold-100 animate-pulse" />
+            </h2>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Ayurvedic Triage Assistant</span>
+          </div>
+        </div>
+        
+        <button
+          onClick={handleResetSession}
+          className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-500 rounded-lg flex items-center space-x-1 cursor-pointer transition shadow-sm"
+          title="Reset chat session"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>New Chat</span>
+        </button>
+      </header>
+
+      {/* Emergency Alert Indicator */}
+      {emergencyFlagged && (
+        <div className="bg-red-50 border-b border-red-200 p-4 text-xs font-semibold text-red-700 flex items-start space-x-3 animate-pulse">
+          <ShieldAlert className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong>⚠️ CRITICAL SAFETY NOTICE:</strong>
+            <p className="leading-relaxed mt-1">
+              You described acute symptoms or expressions of emergency distress. This chat was flagged. Please contact local emergency services immediately. For standard Ayurvedic support, consult a verified doctor.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Messages Log */}
+      <section className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/20">
+        {sessionLoading ? (
+          <div className="h-full flex items-center justify-center text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin text-primary-600 mr-2" />
+            <span>Syncing bot logs...</span>
+          </div>
+        ) : (
+          <>
+            {messages.map((msg, idx) => {
+              const isUser = msg.role === 'user';
+              return (
+                <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+                  <div className={`flex items-start space-x-3 max-w-[80%] ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isUser ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4 text-primary-700" />}
+                    </div>
+                    <div className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed ${
+                      isUser 
+                        ? 'bg-primary-600 text-white rounded-tr-none shadow-sm' 
+                        : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm'
+                    }`}>
+                      <p className="whitespace-pre-line">{msg.content}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {loading && (
+              <div className="flex justify-start items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-primary-700" />
+                </div>
+                <div className="bg-white border border-slate-100 text-slate-400 rounded-2xl rounded-tl-none p-4 text-xs font-semibold flex items-center shadow-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary-600 mr-2" />
+                  PrakritiAI is formulating remedies...
+                </div>
+              </div>
+            )}
+            
+            <div ref={chatEndRef} />
+          </>
+        )}
+      </section>
+
+      {/* Input Message Area */}
+      <footer className="p-4 border-t border-slate-100 bg-slate-50/50">
+        <form onSubmit={handleSend} className="flex items-center space-x-3">
+          <input
+            type="text"
+            required
+            disabled={loading || sessionLoading}
+            value={inputMsg}
+            onChange={(e) => setInputMsg(e.target.value)}
+            placeholder="Type symptoms or wellness questions..."
+            className="flex-grow px-4 py-3 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-primary-600 focus:outline-none placeholder-slate-400 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={loading || !inputMsg.trim()}
+            className="p-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition duration-200 shadow cursor-pointer disabled:opacity-50 flex-shrink-0"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </form>
+      </footer>
+    </div>
+  );
+}
+
+export default function PatientAiChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex-grow flex items-center justify-center min-h-[500px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    }>
+      <PatientAiChat />
+    </Suspense>
+  );
+}
