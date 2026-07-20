@@ -17,7 +17,7 @@ if (typeof global !== 'undefined') {
   }
 }
 
-const pdf = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
 async function verifyPatient() {
   const cookieStore = await cookies();
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { file, fileName } = body;
+    const { file } = body;
 
     if (!file) {
       return NextResponse.json({ error: 'File is required for extraction' }, { status: 400 });
@@ -49,9 +49,10 @@ export async function POST(request: Request) {
       try {
         const base64Data = file.replace(/^data:application\/pdf;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
-        const pdfParser = typeof pdf === 'function' ? pdf : (pdf.default || pdf);
-        const pdfData = await pdfParser(buffer);
-        extractedText = pdfData.text || '';
+        const parser = new PDFParse({ data: buffer });
+        await parser.load();
+        const pdfData = await parser.getText();
+        extractedText = typeof pdfData === 'string' ? pdfData : (pdfData?.text || '');
       } catch (pdfErr: any) {
         console.error('PDF extraction failed:', pdfErr);
       }
