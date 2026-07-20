@@ -7,7 +7,14 @@ function decodeJwt(token: string): any {
     if (parts.length !== 3) return null;
     const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const decoded = atob(payload);
-    return JSON.parse(decoded);
+    const parsed = JSON.parse(decoded);
+    
+    // Check if token is expired
+    if (parsed.exp && parsed.exp * 1000 < Date.now()) {
+      return null; // Token expired
+    }
+    
+    return parsed;
   } catch (e) {
     return null;
   }
@@ -96,7 +103,11 @@ export function middleware(request: NextRequest) {
     }
 
     if (!user || user.role !== 'PATIENT') {
-      return NextResponse.redirect(new URL('/patient/login', request.url));
+      const response = NextResponse.redirect(new URL('/patient/login', request.url));
+      // Clear any stale/expired cookies
+      response.cookies.delete('accessToken');
+      response.cookies.delete('refreshToken');
+      return response;
     }
 
     if (user.status === 'SUSPENDED' || user.status === 'BANNED') {

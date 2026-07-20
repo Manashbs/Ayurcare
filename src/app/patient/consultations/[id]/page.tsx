@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
-import { Loader2, Video, VideoOff, Mic, MicOff, Send, PhoneOff, ClipboardList, ShoppingCart, CheckCircle, Heart } from 'lucide-react';
+import { Loader2, Video, Send, ClipboardList, Clock, ExternalLink, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PatientConsultationRoom() {
@@ -14,9 +14,10 @@ export default function PatientConsultationRoom() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
-  // WebRTC controls mock
-  const [videoActive, setVideoActive] = useState(true);
-  const [audioActive, setAudioActive] = useState(true);
+  // Google Meet & 1:30 hr Timer states
+  const [googleMeetUrl, setGoogleMeetUrl] = useState('');
+  const [timeLeftStr, setTimeLeftStr] = useState('1h 30m 00s');
+  const [isExpired, setIsExpired] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
 
   // Socket.io/Chat states
@@ -51,6 +52,10 @@ export default function PatientConsultationRoom() {
           if (found.status === 'COMPLETED') {
             setIsCompleted(true);
           }
+
+          // Construct unique Google Meet link for this session
+          const meetCode = `ayur-meet-${appointmentId.substring(0, 8)}`;
+          setGoogleMeetUrl(`https://meet.google.com/${meetCode}`);
         } else {
           router.push('/patient/dashboard');
         }
@@ -72,6 +77,32 @@ export default function PatientConsultationRoom() {
   useEffect(() => {
     fetchAppointmentDetails();
   }, [appointmentId]);
+
+  // 1:30 Hr Strict Duration Timer Countdown
+  useEffect(() => {
+    if (!data?.scheduledAt) return;
+
+    const scheduledAt = new Date(data.scheduledAt).getTime();
+    const endWindow = scheduledAt + 90 * 60 * 1000; // 90 minutes
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const diff = endWindow - now;
+
+      if (diff <= 0) {
+        setIsExpired(true);
+        setTimeLeftStr('00h 00m 00s (Session Concluded)');
+        clearInterval(timer);
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeftStr(`${hours}h ${minutes < 10 ? '0' : ''}${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [data]);
 
   // Periodically check if appointment is marked completed by doctor to show prescription
   useEffect(() => {
@@ -119,7 +150,7 @@ export default function PatientConsultationRoom() {
     socketInstance.on('user-joined', ({ userName }) => {
       setMessages((prev) => [
         ...prev,
-        { system: true, message: `System: Physician Dr. ${userName} has joined.` }
+        { system: true, message: `System: Physician Dr. ${userName} joined the Google Meet session.` }
       ]);
     });
 
@@ -135,7 +166,6 @@ export default function PatientConsultationRoom() {
     socketInstance.on('cart-item-added', (item) => {
       setCartItems((prev) => [...prev, item]);
       setCartMsg(`Dr. added ${item.name} to your cart live!`);
-      // Auto-clear message after 4 seconds
       setTimeout(() => setCartMsg(''), 4000);
     });
 
@@ -187,7 +217,7 @@ export default function PatientConsultationRoom() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-primary-800 bg-cream">
-        <Loader2 className="w-8 h-8 animate-spin mr-2" /> Loading video consultation room...
+        <Loader2 className="w-8 h-8 animate-spin mr-2" /> Loading Google Meet consultation room...
       </div>
     );
   }
@@ -198,7 +228,7 @@ export default function PatientConsultationRoom() {
   return (
     <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] overflow-hidden font-sans text-slate-800" id="patient-consultation-room">
       
-      {/* Left Column: Video Feeds (8 cols) */}
+      {/* Left Column: Google Meet Portal Container (8 cols) */}
       <section className="lg:col-span-8 bg-slate-900 border border-slate-880 rounded-2xl overflow-hidden flex flex-col justify-between shadow-2xl relative">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-600 to-gold-600 z-10"></div>
 
@@ -208,66 +238,51 @@ export default function PatientConsultationRoom() {
             <h3 className="font-display font-bold text-sm">Consulting: Dr. {doctorName}</h3>
             <span className="text-[10px] text-slate-400 font-semibold">{speciality}</span>
           </div>
-          <Link
-            href="/patient/dashboard"
-            className="px-3 py-1.5 bg-red-955 border border-red-900/60 hover:bg-red-900 text-red-300 hover:text-white rounded-lg text-xs font-bold transition flex items-center"
-          >
-            <PhoneOff className="w-4 h-4 mr-1.5" /> Hang Up
-          </Link>
+          <div className="flex items-center space-x-2">
+            <span className="text-[11px] font-bold text-gold-400 bg-gold-950/60 px-3 py-1 rounded-full border border-gold-800/40 flex items-center">
+              <Clock className="w-3.5 h-3.5 mr-1" /> Window: {timeLeftStr}
+            </span>
+          </div>
         </div>
 
-        {/* Video stream box */}
-        <div className="flex-1 grid grid-cols-2 gap-4 p-4 min-h-[50%] bg-slate-950">
-          {/* Doctor Stream */}
-          <div className="bg-slate-900 rounded-xl relative border border-slate-850 overflow-hidden flex items-center justify-center shadow">
-            {callConnected ? (
-              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-                <div className="text-center space-y-3 z-10">
-                  <div className="w-14 h-14 rounded-full bg-gold-600/10 text-gold-600 flex items-center justify-center font-bold text-lg border border-gold-600/20 animate-pulse mx-auto">
-                    {doctorName.charAt(0)}
-                  </div>
-                  <span className="text-slate-400 text-xs font-bold">Dr. {doctorName} (Physician)</span>
-                </div>
-                <div className="absolute bottom-3 left-3 bg-black/60 px-2 py-0.5 rounded text-[10px] text-green-400 font-bold">
-                  ● Live Streaming
-                </div>
+        {/* Google Meet Embed & Action Box */}
+        <div className="flex-1 p-5 bg-slate-950 flex flex-col justify-between relative">
+          {!isExpired ? (
+            <div className="h-full border border-slate-800 rounded-xl bg-slate-900/90 p-6 flex flex-col items-center justify-center text-center space-y-5 shadow-inner">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <Video className="w-8 h-8 animate-pulse" />
               </div>
-            ) : (
-              <div className="text-slate-500 text-xs font-bold">Waiting for practitioner connection...</div>
-            )}
-          </div>
 
-          {/* Self Stream */}
-          <div className="bg-slate-900 rounded-xl relative border border-slate-850 overflow-hidden flex items-center justify-center shadow">
-            {videoActive ? (
-              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-primary-100/10 text-primary-400 flex items-center justify-center font-bold border border-primary-500/25 mx-auto">
-                    P
-                  </div>
-                  <span className="text-slate-400 text-[10px] font-bold">Self Stream (You)</span>
-                </div>
+              <div className="space-y-1.5">
+                <h4 className="font-bold text-white text-base">Encrypted Google Meet Room Active</h4>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Your video consultation with <strong>Dr. {doctorName}</strong> is ready. Click below to launch your Google Meet call.
+                </p>
               </div>
-            ) : (
-              <div className="text-slate-500 text-xs font-bold">Camera Muted</div>
-            )}
-            
-            {/* Control overlay */}
-            <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-              <button
-                onClick={() => setAudioActive(!audioActive)}
-                className={`p-2 rounded-lg cursor-pointer transition ${audioActive ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-red-955/35 text-red-400 border border-red-900'}`}
+
+              <div className="w-full max-w-md bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center justify-between">
+                <span className="truncate mr-2">{googleMeetUrl}</span>
+                <span className="text-emerald-400 font-bold uppercase text-[9px] bg-emerald-950 px-2 py-0.5 rounded">AES-256</span>
+              </div>
+
+              <a
+                href={googleMeetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition duration-200 flex items-center cursor-pointer"
               >
-                {audioActive ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => setVideoActive(!videoActive)}
-                className={`p-2 rounded-lg cursor-pointer transition ${videoActive ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-red-955/35 text-red-400 border border-red-900'}`}
-              >
-                {videoActive ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
-              </button>
+                Launch Encrypted Google Meet Room <ExternalLink className="w-4 h-4 ml-2" />
+              </a>
             </div>
-          </div>
+          ) : (
+            <div className="h-full border border-slate-800 rounded-xl bg-slate-900/90 p-6 flex flex-col items-center justify-center text-center space-y-4 shadow-inner">
+              <Lock className="w-12 h-12 text-red-500" />
+              <h4 className="font-bold text-white text-base">1:30 Hour Consultation Window Expired</h4>
+              <p className="text-xs text-slate-400 max-w-sm">
+                The scheduled time limit for this consultation has concluded. You can inspect your final prescription in your records.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
