@@ -8,6 +8,7 @@ interface Remedy {
   symptom: string;
   name: string;
   desc: string;
+  imageUrl?: string;
   ingredients: string[];
   preparation: string[];
   usage: string;
@@ -118,24 +119,36 @@ export default function HomeRemedies() {
           {remedies.map((remedy) => (
             <div
               key={remedy.id || remedy.name}
-              className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition duration-200 flex flex-col justify-between"
+              className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg transition duration-200 flex flex-col justify-between group"
             >
-              <div>
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-primary-50 text-primary-750 uppercase tracking-wide">
-                    {remedy.symptom}
-                  </span>
+              {remedy.imageUrl && (
+                <div className="h-40 w-full overflow-hidden relative bg-slate-100">
+                  <img
+                    src={remedy.imageUrl}
+                    alt={remedy.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  />
+                  <div className="absolute top-2 left-2">
+                    <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-900/80 text-white uppercase tracking-wide backdrop-blur-sm border border-white/20">
+                      {remedy.symptom}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="font-display font-bold text-base text-slate-800">{remedy.name}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed mt-2 mb-4 line-clamp-3">{remedy.desc}</p>
-              </div>
+              )}
 
-              <button
-                onClick={() => setActiveRemedy(remedy)}
-                className="w-full py-2.5 bg-primary-600 hover:bg-primary-750 text-white text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer shadow-sm"
-              >
-                View Recipe & Preparation <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-              </button>
+              <div className="p-5 flex-grow flex flex-col justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-base text-slate-800">{remedy.name}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed mt-2 mb-4 line-clamp-3">{remedy.desc}</p>
+                </div>
+
+                <button
+                  onClick={() => setActiveRemedy(remedy)}
+                  className="w-full py-2.5 bg-primary-600 hover:bg-primary-750 text-white text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer shadow-sm"
+                >
+                  View Recipe & Preparation <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -183,6 +196,12 @@ export default function HomeRemedies() {
               <h2 className="font-display font-extrabold text-xl text-slate-800 mt-1">{activeRemedy.name}</h2>
               <span className="text-xs text-slate-400 font-medium mt-0.5 block">Target Symptom: <strong className="text-primary-700 font-bold">{activeRemedy.symptom}</strong></span>
             </div>
+
+            {activeRemedy.imageUrl && (
+              <div className="w-full h-44 rounded-2xl overflow-hidden relative border border-slate-100 shadow-sm">
+                <img src={activeRemedy.imageUrl} alt={activeRemedy.name} className="w-full h-full object-cover" />
+              </div>
+            )}
 
             <p className="text-xs text-slate-600 leading-relaxed bg-primary-50/15 border-l-4 border-primary-500 p-4 rounded-r-xl">
               {activeRemedy.desc}
