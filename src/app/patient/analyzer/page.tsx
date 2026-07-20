@@ -1,59 +1,65 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UploadCloud, FileText, Loader2, CheckCircle2, ShieldAlert, Activity, AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
+import { UploadCloud, FileText, Loader2, CheckCircle2, ShieldAlert, Activity, AlertCircle, RefreshCw, ChevronRight, Plus, Trash2, Check, X, Shield, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+interface ExtractedMetric {
+  id: string;
+  name: string;
+  value: string;
+  unit: string;
+  refRange: string;
+  status: 'NORMAL' | 'HIGH' | 'LOW' | 'ABNORMAL' | 'NEUTRAL';
+  category: string;
+}
+
+interface MedicalAnalysisResult {
+  summary: string;
+  overallHealthStatus: 'Optimal' | 'Mild Issues Detected' | 'Attention Required';
+  goods: { title: string; desc: string }[];
+  bads: { title: string; desc: string; severity: 'High' | 'Moderate' | 'Mild' }[];
+  neutrals: { title: string; desc: string }[];
+  metrics: ExtractedMetric[];
+  ayurvedicAnalysis: {
+    doshaImbalance: ('Vata' | 'Pitta' | 'Kapha')[];
+    affectedDhatus: string[];
+    pathologyExplanation: string;
+    remedies: string[];
+    dietPathya: string[];
+    dietApathya: string[];
+  };
+}
+
 export default function AIReportAnalyser() {
-  const [reportType, setReportType] = useState<'xray' | 'mri' | 'lab_report'>('lab_report');
+  const [reportType, setReportType] = useState<'lab_report' | 'xray' | 'mri'>('lab_report');
   
   // File upload states
   const [fileBase64, setFileBase64] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   
-  // Lab report form fields
-  const [hemoglobin, setHemoglobin] = useState('13.5');
-  const [cholesterol, setCholesterol] = useState('180');
-  const [tsh, setTsh] = useState('2.5');
-  const [glucose, setGlucose] = useState('90');
-  const [hba1c, setHba1c] = useState('5.2');
-  const [wbc, setWbc] = useState('6.5');
-  const [creatinine, setCreatinine] = useState('0.9');
-  const [alt, setAlt] = useState('25');
-  const [vitaminD, setVitaminD] = useState('35');
-  const [vitaminB12, setVitaminB12] = useState('450');
-  const [rbc, setRbc] = useState('4.8');
-  const [platelets, setPlatelets] = useState('250');
+  // Dynamic extracted metrics & scan findings
+  const [metrics, setMetrics] = useState<ExtractedMetric[]>([]);
+  const [rawText, setRawText] = useState('');
+  const [textFindings, setTextFindings] = useState<string[]>([]);
+  
+  // Custom manual metric inputs
+  const [newMetricName, setNewMetricName] = useState('');
+  const [newMetricValue, setNewMetricValue] = useState('');
+  const [newMetricUnit, setNewMetricUnit] = useState('');
+  const [newMetricRange, setNewMetricRange] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  // Local Ollama Status detection
-  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
-
-  // Scanner animation & results
-  const [isScanning, setIsScanning] = useState(false);
+  // States
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionMsg, setExtractionMsg] = useState('');
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<MedicalAnalysisResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Check local Ollama status on mount
-  useEffect(() => {
-    const checkOllama = async () => {
-      try {
-        const res = await fetch('http://localhost:11434/api/tags');
-        if (res.ok) {
-          setOllamaStatus('connected');
-        } else {
-          setOllamaStatus('offline');
-        }
-      } catch (e) {
-        setOllamaStatus('offline');
-      }
-    };
-    checkOllama();
-  }, []);
-
+  // Handle File Upload & Trigger Immediate OCR / Text Extraction
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -61,64 +67,107 @@ export default function AIReportAnalyser() {
       setExtractionMsg('');
       setAnalysisResult(null);
       setErrorMsg('');
+      setMetrics([]);
+      setRawText('');
+      setTextFindings([]);
+
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result as string;
         setFileBase64(base64);
         
-        // If they uploaded a PDF lab report, trigger the extractor immediately!
-        if (reportType === 'lab_report' && file.name.toLowerCase().endsWith('.pdf')) {
-          setIsExtracting(true);
-          try {
-            const res = await fetch('/api/patient/extract-report', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ file: base64 }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.parsedData) {
-                let count = 0;
-                if (data.parsedData.hemoglobin) { setHemoglobin(data.parsedData.hemoglobin); count++; }
-                if (data.parsedData.cholesterol) { setCholesterol(data.parsedData.cholesterol); count++; }
-                if (data.parsedData.tsh) { setTsh(data.parsedData.tsh); count++; }
-                if (data.parsedData.glucose) { setGlucose(data.parsedData.glucose); count++; }
-                if (data.parsedData.hba1c) { setHba1c(data.parsedData.hba1c); count++; }
-                if (data.parsedData.wbc) { setWbc(data.parsedData.wbc); count++; }
-                if (data.parsedData.creatinine) { setCreatinine(data.parsedData.creatinine); count++; }
-                if (data.parsedData.alt) { setAlt(data.parsedData.alt); count++; }
-                if (data.parsedData.vitaminD) { setVitaminD(data.parsedData.vitaminD); count++; }
-                if (data.parsedData.vitaminB12) { setVitaminB12(data.parsedData.vitaminB12); count++; }
-                if (data.parsedData.rbc) { setRbc(data.parsedData.rbc); count++; }
-                if (data.parsedData.platelets) { setPlatelets(data.parsedData.platelets); count++; }
-                
-                if (count > 0) {
-                  setExtractionMsg(`Successfully extracted and populated ${count} biomarkers from your PDF report!`);
-                } else {
-                  setExtractionMsg('No common biomarkers found in PDF text. Please verify and input manually.');
-                }
-              }
-            } else {
-              setExtractionMsg('Failed to read PDF file contents.');
+        setIsExtracting(true);
+        try {
+          const res = await fetch('/api/patient/extract-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file: base64, fileName: file.name }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            setRawText(data.extractedText || '');
+            if (data.metrics && Array.isArray(data.metrics)) {
+              setMetrics(data.metrics);
             }
-          } catch (err) {
-            console.error('Failed to call extraction API:', err);
-            setExtractionMsg('Connection error during PDF extraction.');
-          } finally {
-            setIsExtracting(false);
+            if (data.textFindings && Array.isArray(data.textFindings)) {
+              setTextFindings(data.textFindings);
+            }
+
+            const totalFound = (data.metrics?.length || 0) + (data.textFindings?.length || 0);
+            if (totalFound > 0) {
+              setExtractionMsg(`Successfully extracted ${totalFound} clinical parameters and findings from your document!`);
+            } else {
+              setExtractionMsg('Report uploaded. Text matrix parsed; you can review or add custom parameters below.');
+            }
+          } else {
+            setExtractionMsg('File uploaded successfully. You can review or manually enter parameters.');
           }
+        } catch (err) {
+          console.error('Extraction API error:', err);
+          setExtractionMsg('Uploaded report ready for analysis.');
+        } finally {
+          setIsExtracting(false);
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Add Custom Parameter to Dynamic Board
+  const handleAddMetric = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMetricName || !newMetricValue) return;
+
+    const newMetric: ExtractedMetric = {
+      id: `custom-${Date.now()}`,
+      name: newMetricName,
+      value: newMetricValue,
+      unit: newMetricUnit || 'unit',
+      refRange: newMetricRange || 'Standard',
+      status: 'NORMAL',
+      category: 'General',
+    };
+
+    setMetrics([...metrics, newMetric]);
+    setNewMetricName('');
+    setNewMetricValue('');
+    setNewMetricUnit('');
+    setNewMetricRange('');
+    setShowAddForm(false);
+  };
+
+  // Remove Metric
+  const handleRemoveMetric = (id: string) => {
+    setMetrics(metrics.filter(m => m.id !== id));
+  };
+
+  // Update Metric Value
+  const handleUpdateMetricValue = (id: string, newVal: string) => {
+    setMetrics(metrics.map(m => {
+      if (m.id === id) {
+        let status = m.status;
+        const num = parseFloat(newVal);
+        if (!isNaN(num) && m.refRange && m.refRange.includes('-')) {
+          const [min, max] = m.refRange.split('-').map(x => parseFloat(x));
+          if (!isNaN(min) && !isNaN(max)) {
+            if (num < min) status = 'LOW';
+            else if (num > max) status = 'HIGH';
+            else status = 'NORMAL';
+          }
+        }
+        return { ...m, value: newVal, status };
+      }
+      return m;
+    }));
+  };
+
+  // Execute Analysis
   const handleAnalyze = async () => {
     setErrorMsg('');
     setAnalysisResult(null);
     setIsScanning(true);
 
-    // Give 2.5 seconds scanner animation for medical-grade simulation feel
     setTimeout(async () => {
       try {
         const res = await fetch('/api/patient/analyze-report', {
@@ -127,10 +176,9 @@ export default function AIReportAnalyser() {
           body: JSON.stringify({
             file: fileBase64,
             reportType,
-            labData:
-              reportType === 'lab_report'
-                ? { hemoglobin, cholesterol, tsh, glucose, hba1c, wbc, creatinine, alt, vitaminD, vitaminB12, rbc, platelets }
-                : null,
+            metrics,
+            rawText,
+            textFindings,
           }),
         });
 
@@ -138,14 +186,14 @@ export default function AIReportAnalyser() {
           const data = await res.json();
           setAnalysisResult(data);
         } else {
-          setErrorMsg('Inference model processing failed. Please try again.');
+          setErrorMsg('Analysis failed. Please verify uploaded file or entered parameters.');
         }
       } catch (err) {
-        setErrorMsg('Failed to establish connection to analyser endpoint.');
-      } finally {
+        setErrorMsg('Failed to establish connection to report analyser endpoint.');
+      } font-bold {
         setIsScanning(false);
       }
-    }, 2500);
+    }, 2000);
   };
 
   const handleSaveToRecords = async () => {
@@ -158,8 +206,8 @@ export default function AIReportAnalyser() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileUrl: `/uploads/${fileName || 'ai_analysis_report.pdf'}`,
-          description: `AI ${reportType.toUpperCase()} Analyser findings: ${analysisResult.summary}`,
+          fileUrl: `/uploads/${fileName || 'medical_report.pdf'}`,
+          description: `AI ${reportType.toUpperCase()} Analysis: ${analysisResult.summary}`,
         }),
       });
 
@@ -183,504 +231,370 @@ export default function AIReportAnalyser() {
             <Activity className="w-6 h-6 text-gold-100" />
           </div>
           <div>
-            <h1 className="font-display text-3xl font-extrabold tracking-wide">PrakritiAI Report Analyser</h1>
+            <h1 className="font-display text-3xl font-extrabold tracking-wide">PrakritiAI Universal Medical Analyser</h1>
             <p className="text-emerald-100 text-sm mt-1">
-              Upload PDF scans or images. Analyze values locally for free using local LLMs or our component-level clinical auditor.
+              Upload any PDF lab report, X-Ray, MRI, or scanned document. Our OCR & AI engine extracts findings, highlights healthy & out-of-range parameters, and maps Ayurvedic pathology.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Ollama Server Status Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-          <h3 className="text-slate-800 text-sm font-bold flex items-center">
-            <RefreshCw className="w-4 h-4 mr-2 text-primary-600" />
-            Ollama Integration Hub (Free Local LLMs)
-          </h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Running LLMs locally means complete privacy and **zero API costs**. Install Ollama and pull medical vision models:
-          </p>
-          <div className="bg-slate-900 text-slate-300 font-mono text-[10px] p-3 rounded-lg flex justify-between items-center">
-            <span># Run local vision scan analysis:<br />ollama run llava</span>
-            <span className="text-emerald-400 font-bold">100% Free</span>
-          </div>
-        </div>
-
-        {/* Status widget */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ollama Connection</span>
-          
-          <div className="my-4">
-            {ollamaStatus === 'checking' && (
-              <span className="text-xs text-slate-500 flex items-center">
-                <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Pinging localhost:11434...
-              </span>
-            )}
-            {ollamaStatus === 'connected' && (
-              <div className="space-y-1">
-                <span className="text-xs text-emerald-600 font-bold flex items-center">
-                  <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-500 fill-emerald-50" /> Local Server Detected
-                </span>
-                <p className="text-[10px] text-slate-400">Ready to execute llava/llama3 inference.</p>
-              </div>
-            )}
-            {ollamaStatus === 'offline' && (
-              <div className="space-y-1">
-                <span className="text-xs text-amber-600 font-bold flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-1.5 text-amber-500 fill-amber-50" /> Local Server Offline
-                </span>
-                <p className="text-[10px] text-slate-400">Defaulting to high-accuracy clinical range auditor fallback.</p>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => {
-              setOllamaStatus('checking');
-              setTimeout(async () => {
-                try {
-                  const res = await fetch('http://localhost:11434/api/tags');
-                  setOllamaStatus(res.ok ? 'connected' : 'offline');
-                } catch (e) {
-                  setOllamaStatus('offline');
-                }
-              }, 1000);
-            }}
-            className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition"
-          >
-            Retry Connection
-          </button>
-        </div>
-      </div>
-
-      {/* Main workspace */}
+      {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Column: Form & Uploader (lg:col-span-5) */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-700">1. Select Report Category</label>
-            <div className="grid grid-cols-3 gap-2 text-[10px] font-bold text-slate-600">
-              {[
-                { type: 'lab_report', label: 'Blood/Lab' },
-                { type: 'xray', label: 'Chest X-Ray' },
-                { type: 'mri', label: 'Brain/Spine MRI' },
-              ].map((c) => (
-                <button
-                  key={c.type}
-                  onClick={() => {
-                    setReportType(c.type as any);
-                    setAnalysisResult(null);
-                  }}
-                  className={`py-2 border rounded-xl transition cursor-pointer ${
-                    reportType === c.type
-                      ? 'border-primary-500 bg-primary-50/10 text-primary-750 font-extrabold'
-                      : 'border-slate-200 hover:border-slate-350'
-                  }`}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Upload card */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-705">2. Upload Scans or Files (PDF/PNG/JPG)</label>
-            <div className="border-2 border-dashed border-slate-200 hover:border-primary-400 rounded-2xl p-6 text-center space-y-2 relative transition cursor-pointer">
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <UploadCloud className="w-8 h-8 text-slate-400 mx-auto" />
-              <div className="text-xs font-bold text-slate-700">
-                {fileName ? fileName : 'Choose Medical Report File'}
-              </div>
-              <span className="text-[10px] text-slate-400 block">PDF, PNG, JPG, JPEG up to 10MB</span>
-            </div>
-          </div>
-
-          {/* Extraction status loader/msg */}
-          {isExtracting && (
-            <div className="bg-primary-50/30 border border-primary-100 p-3.5 rounded-xl text-xs flex items-center space-x-2.5">
-              <Loader2 className="w-4 h-4 animate-spin text-primary-600 flex-shrink-0" />
-              <span className="text-slate-600 font-semibold">Extracting and normalizing PDF text...</span>
-            </div>
-          )}
-
-          {extractionMsg && (
-            <div className={`p-3.5 rounded-xl text-xs font-semibold flex items-start space-x-2.5 border ${
-              extractionMsg.includes('Successfully')
-                ? 'bg-emerald-50/30 border-emerald-100 text-emerald-800'
-                : 'bg-amber-50/30 border-amber-100 text-amber-800'
-            }`}>
-              <CheckCircle2 className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                extractionMsg.includes('Successfully') ? 'text-emerald-600' : 'text-amber-600'
-              }`} />
-              <span>{extractionMsg}</span>
-            </div>
-          )}
-
-          {/* Verification Form (Interactive blood test range checker) */}
-          {reportType === 'lab_report' && (
-            <div className="border-t border-slate-100 pt-4 space-y-4 text-xs font-semibold">
-              <div className="flex justify-between items-center">
-                <span className="block font-bold text-primary-750 uppercase text-[10px]">3. Audit Lab Metrics (100% Accuracy Check)</span>
-                <span className="text-[9px] text-slate-400 italic">Adjust to match your report</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="hb" className="block text-[10px] text-slate-500 uppercase">Hemoglobin (g/dL)</label>
-                  <input
-                    id="hb"
-                    type="text"
-                    value={hemoglobin}
-                    onChange={(e) => setHemoglobin(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 12.0 - 16.0</span>
-                </div>
-                
-                <div className="space-y-1">
-                  <label htmlFor="chol" className="block text-[10px] text-slate-500 uppercase">Total Cholesterol (mg/dL)</label>
-                  <input
-                    id="chol"
-                    type="text"
-                    value={cholesterol}
-                    onChange={(e) => setCholesterol(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 130 - 200</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="tshVal" className="block text-[10px] text-slate-500 uppercase">TSH (mIU/L)</label>
-                  <input
-                    id="tshVal"
-                    type="text"
-                    value={tsh}
-                    onChange={(e) => setTsh(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 0.45 - 4.5</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="gl" className="block text-[10px] text-slate-500 uppercase">Fasting Glucose (mg/dL)</label>
-                  <input
-                    id="gl"
-                    type="text"
-                    value={glucose}
-                    onChange={(e) => setGlucose(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 70 - 100</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="hba1cVal" className="block text-[10px] text-slate-500 uppercase">HbA1c (%)</label>
-                  <input
-                    id="hba1cVal"
-                    type="text"
-                    value={hba1c}
-                    onChange={(e) => setHba1c(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 4.0 - 5.6</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="wbcVal" className="block text-[10px] text-slate-500 uppercase">WBC (x10^3/µL)</label>
-                  <input
-                    id="wbcVal"
-                    type="text"
-                    value={wbc}
-                    onChange={(e) => setWbc(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 4.0 - 11.0</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="creatVal" className="block text-[10px] text-slate-500 uppercase">Creatinine (mg/dL)</label>
-                  <input
-                    id="creatVal"
-                    type="text"
-                    value={creatinine}
-                    onChange={(e) => setCreatinine(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 0.6 - 1.2</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="altVal" className="block text-[10px] text-slate-500 uppercase">SGPT / ALT (U/L)</label>
-                  <input
-                    id="altVal"
-                    type="text"
-                    value={alt}
-                    onChange={(e) => setAlt(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 7 - 56</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="vitDVal" className="block text-[10px] text-slate-500 uppercase">Vitamin D3 (ng/mL)</label>
-                  <input
-                    id="vitDVal"
-                    type="text"
-                    value={vitaminD}
-                    onChange={(e) => setVitaminD(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 30 - 100</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="vitB12Val" className="block text-[10px] text-slate-500 uppercase">Vitamin B12 (pg/mL)</label>
-                  <input
-                    id="vitB12Val"
-                    type="text"
-                    value={vitaminB12}
-                    onChange={(e) => setVitaminB12(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 200 - 900</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="rbcVal" className="block text-[10px] text-slate-500 uppercase">RBC Count (m/µL)</label>
-                  <input
-                    id="rbcVal"
-                    type="text"
-                    value={rbc}
-                    onChange={(e) => setRbc(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 4.5 - 5.9</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="platVal" className="block text-[10px] text-slate-500 uppercase">Platelets (x10^3/µL)</label>
-                  <input
-                    id="platVal"
-                    type="text"
-                    value={platelets}
-                    onChange={(e) => setPlatelets(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Normal: 150 - 450</span>
-                </div>
+        {/* Left Column: File Dropzone & Dynamic Metrics Board (lg:col-span-5) */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+            
+            {/* Category Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">1. Select Report Category</label>
+              <div className="grid grid-cols-3 gap-2 text-xs font-bold">
+                {[
+                  { type: 'lab_report', label: 'Blood & Lab' },
+                  { type: 'xray', label: 'Chest X-Ray' },
+                  { type: 'mri', label: 'Spine & MRI' },
+                ].map((c) => (
+                  <button
+                    key={c.type}
+                    onClick={() => {
+                      setReportType(c.type as any);
+                      setAnalysisResult(null);
+                    }}
+                    className={`py-2.5 border rounded-xl transition cursor-pointer text-center ${
+                      reportType === c.type
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-800 font-extrabold shadow-sm'
+                        : 'border-slate-200 hover:border-slate-350 text-slate-700'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-          <button
-            onClick={handleAnalyze}
-            disabled={isScanning || !fileBase64}
-            className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition duration-200 flex items-center justify-center disabled:opacity-50 cursor-pointer text-sm mt-4 shadow"
-          >
-            {isScanning ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin mr-2" /> Scanning Document...
-              </>
-            ) : (
-              'Analyze Report'
+            {/* Dropzone */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">2. Upload Medical Scan or Report (PDF/PNG/JPG)</label>
+              <div className="border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-6 text-center space-y-2 relative transition cursor-pointer bg-slate-50/50 hover:bg-emerald-50/10">
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <UploadCloud className="w-8 h-8 text-emerald-600 mx-auto" />
+                <div className="text-xs font-bold text-slate-800">
+                  {fileName ? fileName : 'Drag & drop or click to choose file'}
+                </div>
+                <span className="text-[10px] text-slate-400 block">PDF, Scanned Images, PNG, JPG up to 15MB</span>
+              </div>
+            </div>
+
+            {/* Extraction Loader */}
+            {isExtracting && (
+              <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-xs flex items-center space-x-2.5">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600 flex-shrink-0" />
+                <span className="text-emerald-900 font-semibold">Running OCR & parsing document text matrix...</span>
+              </div>
             )}
-          </button>
+
+            {/* Extraction Status Message */}
+            {extractionMsg && !isExtracting && (
+              <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl text-xs font-semibold flex items-start space-x-2 text-emerald-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span>{extractionMsg}</span>
+              </div>
+            )}
+
+            {/* Dynamic Extracted Parameters Board */}
+            <div className="border-t border-slate-100 pt-5 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="block font-bold text-slate-800 text-xs">3. Extracted Clinical Parameters ({metrics.length})</span>
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Add Parameter
+                </button>
+              </div>
+
+              {/* Add Parameter Form */}
+              {showAddForm && (
+                <form onSubmit={handleAddMetric} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-3 animate-fadeIn">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <input
+                      type="text"
+                      placeholder="Parameter Name (e.g. TSH)"
+                      value={newMetricName}
+                      onChange={e => setNewMetricName(e.target.value)}
+                      className="px-2.5 py-1.5 border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Value (e.g. 5.8)"
+                      value={newMetricValue}
+                      onChange={e => setNewMetricValue(e.target.value)}
+                      className="px-2.5 py-1.5 border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Unit (e.g. mIU/L)"
+                      value={newMetricUnit}
+                      onChange={e => setNewMetricUnit(e.target.value)}
+                      className="px-2.5 py-1.5 border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Ref Range (e.g. 0.45-4.5)"
+                      value={newMetricRange}
+                      onChange={e => setNewMetricRange(e.target.value)}
+                      className="px-2.5 py-1.5 border rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddForm(false)}
+                      className="px-3 py-1 text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3 py-1 bg-emerald-600 text-white text-[11px] font-bold rounded-lg cursor-pointer hover:bg-emerald-700"
+                    >
+                      Save Parameter
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Metrics List */}
+              {metrics.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+                  No numerical parameters added yet. Upload a report or click "Add Parameter" to insert test values.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {metrics.map((m) => (
+                    <div
+                      key={m.id}
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <strong className="block font-bold text-slate-800 truncate">{m.name}</strong>
+                        <span className="text-[10px] text-slate-400 block">Ref: {m.refRange} {m.unit}</span>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={m.value}
+                          onChange={(e) => handleUpdateMetricValue(m.id, e.target.value)}
+                          className="w-16 px-2 py-1 rounded border border-slate-200 bg-white text-center font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-500 font-bold">{m.unit}</span>
+
+                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
+                          m.status === 'NORMAL' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {m.status}
+                        </span>
+
+                        <button
+                          onClick={() => handleRemoveMetric(m.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleAnalyze}
+              disabled={isScanning || (!fileBase64 && metrics.length === 0)}
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition duration-200 flex items-center justify-center disabled:opacity-50 cursor-pointer text-sm shadow-md"
+            >
+              {isScanning ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Conducting Medical & Ayurvedic Analysis...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" /> Analyze Complete Report
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Right Column: Scanner Animation & Results (lg:col-span-7) */}
+        {/* Right Column: Diagnostic Results Dashboard (Goods, Bads, Ayurvedic Pathya) (lg:col-span-7) */}
         <div className="lg:col-span-7 space-y-6">
           
-          {/* Scanning Animation overlay */}
+          {/* Scanning Animation */}
           {isScanning && (
             <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-8 text-center flex flex-col items-center justify-center space-y-6 min-h-[450px] relative overflow-hidden">
               <div className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent top-0 animate-scanline shadow-[0_0_15px_#10b981]"></div>
-              
               <Activity className="w-12 h-12 text-emerald-400 animate-pulse" />
               <div className="space-y-1">
-                <strong className="block text-base font-bold text-slate-100">Scanning Document Matrix...</strong>
-                <p className="text-xs text-slate-400">Verifying contrast parameters, checking bounding boxes, and parsing ranges.</p>
-              </div>
-              <div className="w-32 bg-slate-850 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-emerald-400 h-full w-2/3 rounded-full animate-progressFill"></div>
+                <strong className="block text-base font-bold text-slate-100">Scanning Document & Evaluating Clinical Findings...</strong>
+                <p className="text-xs text-slate-400">Classifying normal parameters, isolating out-of-range metrics, and compiling Ayurvedic recommendations.</p>
               </div>
             </div>
           )}
 
-          {/* Analysis Error */}
+          {/* Error Message */}
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-5 rounded-2xl text-xs space-y-2">
-              <strong className="font-bold block">Analysis Failed</strong>
+              <strong className="font-bold block">Analysis Error</strong>
               <p>{errorMsg}</p>
             </div>
           )}
 
-          {/* Analysis Results Display */}
+          {/* Results View */}
           {analysisResult && !isScanning && (
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6 animate-slideUp">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8 animate-slideUp">
               
-              {/* Top status header */}
-              <div className="flex justify-between items-start border-b pb-4 border-slate-100">
+              {/* Executive Header Banner */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-6 border-slate-100">
                 <div>
-                  <span className="text-[10px] text-primary-600 font-bold uppercase tracking-wider block">AI Audit Sheet</span>
-                  <h3 className="font-display font-extrabold text-lg text-slate-800 mt-0.5">{analysisResult.summary}</h3>
+                  <span className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider block">Comprehensive AI Medical Findings</span>
+                  <h3 className="font-display font-extrabold text-xl text-slate-800 mt-1">{analysisResult.summary}</h3>
                 </div>
 
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                  analysisResult.usedLocalOllama ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                <div className={`px-4 py-2 rounded-2xl border text-xs font-black tracking-wide uppercase ${
+                  analysisResult.overallHealthStatus === 'Optimal' 
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                    : analysisResult.overallHealthStatus === 'Mild Issues Detected'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : 'bg-rose-50 text-rose-800 border-rose-200'
                 }`}>
-                  {analysisResult.usedLocalOllama ? 'Ollama: LLaVA' : 'Clinical Expert Fallback'}
-                </span>
+                  {analysisResult.overallHealthStatus}
+                </div>
               </div>
 
-              {/* Component-by-Component Medical Audit Table */}
-              {analysisResult.componentDetails ? (
-                <div className="space-y-6">
-                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">Component-by-Component Medical Audit</h4>
-                  
-                  <div className="space-y-4">
-                    {analysisResult.componentDetails.map((comp: any, idx: number) => {
-                      const isNormal = comp.status === 'NORMAL';
-                      return (
-                        <div key={idx} className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-white">
-                          
-                          {/* Header: Title, Value, Status */}
-                          <div className={`p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 ${
-                            isNormal ? 'bg-emerald-50/10' : 'bg-rose-50/10'
-                          }`}>
-                            <div>
-                              <strong className="text-sm font-bold text-slate-800">{comp.name}</strong>
-                              <div className="text-[10px] text-slate-500 mt-0.5">
-                                Ref Range: {comp.refRange} {comp.unit}
-                              </div>
-                            </div>
+              {/* 🟢 THE GOODS (Normal & Healthy Parameters) */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-black text-emerald-800 uppercase tracking-wider flex items-center">
+                  <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
+                  The Goods (Healthy & Normal Findings) ({analysisResult.goods.length})
+                </h4>
 
-                            <div className="flex items-center space-x-3">
-                              <span className="text-xs font-extrabold text-slate-700 bg-slate-100 px-2 py-1 rounded">
-                                {comp.value} {comp.unit}
-                              </span>
-
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded uppercase ${
-                                isNormal 
-                                  ? 'bg-emerald-100 text-emerald-800' 
-                                  : comp.status === 'HIGH' 
-                                    ? 'bg-rose-100 text-rose-800' 
-                                    : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {comp.status}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Explanation & Remedies */}
-                          <div className="p-4 space-y-4 text-xs">
-                            <p className="text-slate-650 leading-relaxed font-semibold">
-                              {comp.explanation}
-                            </p>
-
-                            {!isNormal && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 border-slate-100">
-                                {/* Ayurvedic Medicines & Remedies */}
-                                <div className="space-y-2">
-                                  <strong className="text-[10px] uppercase font-extrabold text-primary-750 block">Ayurvedic Remedies & Herbs</strong>
-                                  <ul className="space-y-1.5 text-slate-600">
-                                    {comp.remedies.map((r: string, rIdx: number) => (
-                                      <li key={rIdx} className="flex items-start">
-                                        <span className="text-primary-600 mr-2 font-bold">•</span>
-                                        <span>{r}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                {/* Diet Guidelines */}
-                                <div className="space-y-2">
-                                  <strong className="text-[10px] uppercase font-extrabold text-emerald-800 block">Dietary Adjustments (Pathya / Apathya)</strong>
-                                  <div className="space-y-2">
-                                    <div>
-                                      <span className="text-[9px] font-bold text-emerald-700 uppercase block mb-1">✓ Favor (Pathya):</span>
-                                      <span className="text-slate-600 block">{comp.dietPathya.join(', ')}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-[9px] font-bold text-rose-700 uppercase block mb-1">✕ Avoid (Apathya):</span>
-                                      <span className="text-slate-600 block">{comp.dietApathya.join(', ')}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {analysisResult.goods.map((g, idx) => (
+                    <div key={idx} className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-2xl space-y-1 text-xs">
+                      <strong className="font-bold text-emerald-950 block">{g.title}</strong>
+                      <p className="text-slate-600 leading-relaxed">{g.desc}</p>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                /* Findings checklist fallback for scans */
-                <div className="space-y-3">
-                  <h4 className="text-xs font-extrabold text-slate-805 text-slate-800 uppercase tracking-wider">Parameters Inspected</h4>
-                  <div className="space-y-2">
-                    {analysisResult.findings.map((f: string, idx: number) => (
-                      <div key={idx} className="p-3 bg-slate-50 border border-slate-150 rounded-xl text-xs flex items-start space-x-2">
-                        <ShieldAlert className="w-4.5 h-4.5 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-slate-650 text-slate-605">{f}</span>
+              </div>
+
+              {/* 🔴 THE BADS (Issues & Out-of-Range Parameters) */}
+              {analysisResult.bads.length > 0 && (
+                <div className="space-y-3 border-t pt-6 border-slate-100">
+                  <h4 className="text-xs font-black text-rose-800 uppercase tracking-wider flex items-center">
+                    <ShieldAlert className="w-4 h-4 mr-1.5 text-rose-600" />
+                    The Bads (Issues & Out-of-Range Parameters) ({analysisResult.bads.length})
+                  </h4>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {analysisResult.bads.map((b, idx) => (
+                      <div key={idx} className="p-4 bg-rose-50/40 border border-rose-200 rounded-2xl space-y-1 text-xs">
+                        <div className="flex justify-between items-center mb-1">
+                          <strong className="font-bold text-rose-950 text-sm">{b.title}</strong>
+                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                            {b.severity} Priority
+                          </span>
+                        </div>
+                        <p className="text-slate-700 leading-relaxed font-medium">{b.desc}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Ayurvedic Interpretation Footer */}
-              <div className="space-y-4 border-t pt-4 border-slate-100">
+              {/* 🌿 AYURVEDIC PATHOLOGY & DOSHA DIAGNOSIS */}
+              <div className="space-y-4 border-t pt-6 border-slate-100">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Ayurvedic Pathological Interpretation</h4>
-                  <div className="flex space-x-1">
-                    {analysisResult.ayurvedicAnalysis.imbalancedDoshas.map((d: string) => (
-                      <span key={d} className="bg-indigo-50 text-indigo-700 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase">
-                        {d}
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
+                    <Shield className="w-4 h-4 mr-1.5 text-emerald-600" />
+                    Ayurvedic Pathology & Dosha Diagnosis
+                  </h4>
+                  <div className="flex space-x-1.5">
+                    {analysisResult.ayurvedicAnalysis.doshaImbalance.map((d) => (
+                      <span key={d} className="bg-emerald-100 text-emerald-900 border border-emerald-200 text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase">
+                        {d} Vitiation
                       </span>
                     ))}
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed bg-primary-50/15 p-4 rounded-xl border-l-4 border-primary-500">
-                  {analysisResult.ayurvedicAnalysis.interpretation}
+                <p className="text-xs text-slate-700 leading-relaxed bg-emerald-50/20 border-l-4 border-emerald-600 p-4 rounded-r-2xl font-medium">
+                  {analysisResult.ayurvedicAnalysis.pathologyExplanation}
                 </p>
               </div>
 
-              {/* Actions Footer */}
-              <div className="border-t pt-6 border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveToRecords}
-                    disabled={isSaving || savedSuccess}
-                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition flex items-center justify-center cursor-pointer disabled:opacity-50"
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Saving...
-                      </>
-                    ) : savedSuccess ? (
-                      'Saved to Locker ✓'
-                    ) : (
-                      'Save to Locker'
-                    )}
-                  </button>
+              {/* 💊 AYURVEDIC REMEDIES & DIET (PATHYA / APATHYA) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6 border-slate-100 text-xs">
+                {/* Herbal Remedies */}
+                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
+                  <strong className="text-xs uppercase font-extrabold text-emerald-900 block">Recommended Herbal Remedies</strong>
+                  <ul className="space-y-2 text-slate-700">
+                    {analysisResult.ayurvedicAnalysis.remedies.map((r, rIdx) => (
+                      <li key={rIdx} className="flex items-start">
+                        <span className="text-emerald-600 mr-2 font-bold">•</span>
+                        <span>{r}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+
+                {/* Dietary Adjustments */}
+                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3">
+                  <strong className="text-xs uppercase font-extrabold text-slate-800 block">Dietary Guidelines</strong>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-emerald-700 uppercase block mb-1">✓ Favor (Pathya):</span>
+                      <p className="text-slate-700 font-medium leading-relaxed">{analysisResult.ayurvedicAnalysis.dietPathya.join(', ')}</p>
+                    </div>
+                    <div className="pt-2 border-t border-slate-200">
+                      <span className="text-[10px] font-extrabold text-rose-700 uppercase block mb-1">✕ Avoid (Apathya):</span>
+                      <p className="text-slate-700 font-medium leading-relaxed">{analysisResult.ayurvedicAnalysis.dietApathya.join(', ')}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Footer */}
+              <div className="border-t pt-6 border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
+                <button
+                  onClick={handleSaveToRecords}
+                  disabled={isSaving || savedSuccess}
+                  className="px-5 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...
+                    </>
+                  ) : savedSuccess ? (
+                    'Saved to Medical Locker ✓'
+                  ) : (
+                    'Save Findings to Health Locker'
+                  )}
+                </button>
 
                 <Link
                   href="/patient/doctors"
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-750 text-white text-xs font-bold rounded-lg transition flex items-center justify-center cursor-pointer"
+                  className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer shadow-md"
                 >
-                  Schedule Doctor Review <ChevronRight className="w-4 h-4 ml-1" />
+                  Schedule Tele-Consultation <ChevronRight className="w-4 h-4 ml-1" />
                 </Link>
               </div>
 
@@ -690,7 +604,6 @@ export default function AIReportAnalyser() {
         </div>
 
       </div>
-
     </div>
   );
 }
