@@ -57,22 +57,21 @@ export default function FindAndBookDoctor() {
   useEffect(() => {
     if (selectedDoctor) {
       // Set default selected date
-      setSelectedDate(dateOptions[0].isoString);
+      const defaultDate = dateOptions[0].isoString;
+      if (!selectedDate) setSelectedDate(defaultDate);
 
-      // Parse availability slots if configured
-      let slots = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+      const isToday = (selectedDate || defaultDate) === dateOptions[0].isoString;
+
+      let slots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
       const profile = selectedDoctor.doctorProfile || {};
       if (profile.availability) {
         try {
           const parsed = JSON.parse(profile.availability);
           const recurring = parsed.recurring || {};
-          // Get weekday name
-          const dateObj = new Date(selectedDate || dateOptions[0].isoString);
+          const dateObj = new Date(selectedDate || defaultDate);
           const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
           const daySlots = recurring[weekday];
           if (daySlots && daySlots.length > 0) {
-            // daySlots is like ["09:00-13:00", "14:00-18:00"]
-            // Split into hour intervals
             const compiled: string[] = [];
             daySlots.forEach((range: string) => {
               const [start, end] = range.split('-');
@@ -86,8 +85,13 @@ export default function FindAndBookDoctor() {
           }
         } catch (e) {}
       }
+
+      if (isToday) {
+        slots = ['NOW', ...slots];
+      }
+
       setAvailableSlots(slots);
-      setSelectedTimeSlot(slots[0] || '');
+      setSelectedTimeSlot(slots[0] || 'NOW');
     }
   }, [selectedDoctor, selectedDate]);
 
@@ -102,7 +106,10 @@ export default function FindAndBookDoctor() {
     setBookingSuccess('');
     setBookingLoading(true);
 
-    const scheduledAt = new Date(`${selectedDate}T${selectedTimeSlot}:00`).toISOString();
+    let scheduledAt = new Date().toISOString();
+    if (selectedTimeSlot !== 'NOW') {
+      scheduledAt = new Date(`${selectedDate}T${selectedTimeSlot}:00`).toISOString();
+    }
 
     try {
       const res = await fetch('/api/patient/appointments', {
@@ -334,7 +341,7 @@ export default function FindAndBookDoctor() {
                             : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                         }`}
                       >
-                        {slot}
+                        {slot === 'NOW' ? '⚡ Instant (Now)' : slot}
                       </button>
                     ))}
                   </div>
