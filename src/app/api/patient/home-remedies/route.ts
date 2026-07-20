@@ -1,52 +1,41 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import remediesData from '@/app/patient/home-remedies/remedies-large.json';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const search = (searchParams.get('search') || '').toLowerCase();
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '15', 10);
-    const query = searchParams.get('query') || '';
-    const symptom = searchParams.get('symptom') || 'All';
+    const limit = parseInt(searchParams.get('limit') || '24', 10);
 
-    const jsonPath = path.join(process.cwd(), 'src', 'app', 'patient', 'home-remedies', 'remedies-large.json');
-    if (!fs.existsSync(jsonPath)) {
-      return NextResponse.json({ error: 'Home remedies database not found' }, { status: 404 });
+    let filtered = remediesData as any[];
+
+    if (search) {
+      filtered = filtered.filter(
+        (r) =>
+          r.symptom.toLowerCase().includes(search) ||
+          r.name.toLowerCase().includes(search) ||
+          r.desc.toLowerCase().includes(search) ||
+          (r.ingredients && r.ingredients.some((i: string) => i.toLowerCase().includes(search))) ||
+          (r.preparation && r.preparation.some((p: string) => p.toLowerCase().includes(search)))
+      );
     }
 
-    const fileContent = fs.readFileSync(jsonPath, 'utf8');
-    const remedies = JSON.parse(fileContent);
-
-    // Filter server-side
-    const filtered = remedies.filter((r: any) => {
-      const matchesSearch =
-        !query ||
-        r.name.toLowerCase().includes(query.toLowerCase()) ||
-        r.symptom.toLowerCase().includes(query.toLowerCase()) ||
-        r.desc.toLowerCase().includes(query.toLowerCase()) ||
-        r.ingredients.some((i: string) => i.toLowerCase().includes(query.toLowerCase())) ||
-        r.preparation.some((p: string) => p.toLowerCase().includes(query.toLowerCase())) ||
-        r.usage.toLowerCase().includes(query.toLowerCase());
-
-      const matchesSymptom = symptom === 'All' || r.symptom === symptom;
-
-      return matchesSearch && matchesSymptom;
-    });
-
-    // Paginate
-    const startIndex = (page - 1) * limit;
-    const paginated = filtered.slice(startIndex, startIndex + limit);
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const currentPage = Math.max(1, Math.min(page, totalPages));
+    const startIndex = (currentPage - 1) * limit;
+    const paginatedItems = filtered.slice(startIndex, startIndex + limit);
 
     return NextResponse.json({
-      remedies: paginated,
-      totalCount: filtered.length,
-      totalPages: Math.ceil(filtered.length / limit),
-      currentPage: page
-    }, { status: 200 });
-
+      totalCount: total,
+      totalPages,
+      currentPage,
+      limit,
+      remedies: paginatedItems,
+    });
   } catch (error: any) {
-    console.error('Home Remedies API error:', error);
-    return NextResponse.json({ error: 'Failed to retrieve home remedies data' }, { status: 500 });
+    console.error('Fetch home remedies error:', error);
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
   }
 }
