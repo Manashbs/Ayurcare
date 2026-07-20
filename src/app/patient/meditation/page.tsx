@@ -300,7 +300,7 @@ export default function MeditationSpace() {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Difficulty Tier</span>
             
             {/* Level Tabs */}
-            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 text-xs font-bold text-slate-650 bg-slate-50 text-slate-600">
+            <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200/50 text-xs font-bold text-slate-600">
               {(['Beginner', 'Medium', 'Advanced'] as const).map((lvl) => (
                 <button
                   key={lvl}
@@ -309,7 +309,11 @@ export default function MeditationSpace() {
                     const matched = MEDITATION_TRACKS.find((t) => t.level === lvl);
                     if (matched) setActiveTrack(matched);
                   }}
-                  className="py-2 rounded-lg transition cursor-pointer"
+                  className={`py-2 rounded-lg transition-premium cursor-pointer text-center ${
+                    selectedLevel === lvl
+                      ? 'bg-white text-indigo-750 shadow-sm font-extrabold scale-100'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
                   {lvl}
                 </button>

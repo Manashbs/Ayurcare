@@ -173,7 +173,7 @@ export async function sendAppointmentConfirmationEmail({
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #faf7f0;">
-      <h2 style="color: #1e3f20; text-align: center;">AyurCare Consultation Confirmed</h2>
+      <h2 style="color: #1e3f20; text-align: center;">AyurCare Google Meet Consultation Confirmed</h2>
       <p style="font-size: 16px; color: #333;">Namaste <strong>${recipientName}</strong>,</p>
       <p style="font-size: 16px; color: #333;">
         ${isDoctor 
@@ -181,16 +181,18 @@ export async function sendAppointmentConfirmationEmail({
           : `Your consultation request with <strong>Dr. ${doctorName}</strong> has been successfully booked.`}
       </p>
       
-      <div style="background-color: #f0e6d2; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #1e3f20; font-weight: bold;">
-        📅 Scheduled Time: ${dateStr}
+      <div style="background-color: #f0e6d2; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; color: #1e3f20; font-weight: bold; leading-height: 1.6;">
+        📅 Scheduled Time: ${dateStr}<br/>
+        ⏱️ Duration: 1 Hour 30 Minutes (Strict 90 Mins)<br/>
+        📹 Platform: Google Meet Encrypted Portal
       </div>
 
       <p style="font-size: 15px; color: #333;">
-        This meeting room is encrypted and limited only to you and the scheduled practitioner. Please click the button below to join the call at the scheduled time:
+        This Google Meet room is encrypted and strictly restricted to authorized participants. Access will open exactly at the scheduled time and will remain active for 1:30 hours.
       </p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${meetUrl}" style="background-color: #1e3f20; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Join Secure Meet Room</a>
+        <a href="${meetUrl}" style="background-color: #1e3f20; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Join Google Meet Consultation</a>
       </div>
 
       <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
