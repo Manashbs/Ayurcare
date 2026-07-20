@@ -50,10 +50,16 @@ export async function GET() {
       orderBy: { scheduledAt: 'desc' },
     });
 
+    const profile = await prisma.patientProfile.findUnique({
+      where: { userId: patient.userId },
+      select: { doshaType: true, lifestyleData: true },
+    });
+
     return NextResponse.json({
       prescriptions,
       labReports,
       pastConsultations: appointments,
+      profile,
     });
   } catch (error: any) {
     console.error('Fetch records error:', error);

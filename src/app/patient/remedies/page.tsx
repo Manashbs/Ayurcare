@@ -22,10 +22,23 @@ interface Herb {
   color: string;
 }
 
+import { useSearchParams } from 'next/navigation';
+
 export default function HerbRemedies() {
+  const searchParams = useSearchParams();
+  const urlDosha = searchParams.get('dosha');
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDoshaFilter, setSelectedDoshaFilter] = useState<'All' | 'Vata' | 'Pitta' | 'Kapha'>('All');
+  const [selectedDoshaFilter, setSelectedDoshaFilter] = useState<'All' | 'Vata' | 'Pitta' | 'Kapha'>(
+    (urlDosha as any) || 'All'
+  );
   const [activeHerb, setActiveHerb] = useState<Herb | null>(null);
+
+  useEffect(() => {
+    if (urlDosha && ['Vata', 'Pitta', 'Kapha'].includes(urlDosha)) {
+      setSelectedDoshaFilter(urlDosha as any);
+    }
+  }, [urlDosha]);
 
   const [herbs, setHerbs] = useState<Herb[]>([]);
   const [page, setPage] = useState(1);

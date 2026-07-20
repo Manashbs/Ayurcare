@@ -227,33 +227,40 @@ export default function PatientDashboard() {
               <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary-700 group-hover:scale-105 transition-transform">
                 <Heart className="w-7 h-7 fill-primary-50 text-primary-600" />
               </div>
-
-              {records?.pastConsultations && records.pastConsultations[0]?.patient?.doshaType ? (
-                <div className="space-y-3">
-                  <h4 className="font-display font-black text-2xl text-primary-800 tracking-tight">
-                    {records.pastConsultations[0].patient.doshaType} DOMINANT
+              {records?.profile?.doshaType || (records?.pastConsultations && records.pastConsultations[0]?.patient?.doshaType) ? (
+                <div>
+                  <h4 className="font-display font-extrabold text-2xl text-primary-850 tracking-wide">
+                    {records?.profile?.doshaType || records.pastConsultations[0].patient.doshaType} DOMINANT
                   </h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Your metabolic profile is saved. Doctors can consult this profile instantly during sessions.
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Your constitution has been mapped. Doctors can consult this profile instantly for personalized treatment plans.
                   </p>
-                  <Link
-                    href="/patient/quiz"
-                    className="text-xs font-bold text-primary-600 hover:text-primary-700 underline mt-4 block cursor-pointer"
-                  >
-                    Retake Dosha Quiz
-                  </Link>
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                    <Link
+                      href={`/patient/remedies?dosha=${(records?.profile?.doshaType || records.pastConsultations[0].patient.doshaType || '').split('_')[0]}`}
+                      className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg block transition cursor-pointer"
+                    >
+                      Browse {(records?.profile?.doshaType || records.pastConsultations[0].patient.doshaType || '').split('_')[0]} Herbs
+                    </Link>
+                    <Link
+                      href="/patient/quiz"
+                      className="text-[11px] font-bold text-primary-600 hover:text-primary-700 underline block cursor-pointer pt-1"
+                    >
+                      Retake Prakriti Assessment Quiz
+                    </Link>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <h4 className="font-display font-bold text-slate-800 text-sm">Prakriti Unassessed</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed px-2">
-                    Evaluate Vata, Pitta, and Kapha dominance to map your metabolic profile.
+                <div>
+                  <h4 className="font-display font-bold text-slate-800 text-lg">Prakriti Unassessed</h4>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Map your Vata, Pitta, and Kapha dominance to personalize your treatment plans.
                   </p>
                   <Link
                     href="/patient/quiz"
-                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs mt-5 block shadow-md shadow-primary-600/10 cursor-pointer"
+                    className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-xs mt-5 block shadow cursor-pointer transition"
                   >
-                    Assess My Constitution
+                    Take Prakriti Assessment Quiz
                   </Link>
                 </div>
               )}
