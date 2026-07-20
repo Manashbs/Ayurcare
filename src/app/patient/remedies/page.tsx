@@ -10,6 +10,7 @@ interface Herb {
   scientificName: string;
   sanskritName: string;
   desc: string;
+  imageUrl?: string;
   rasa: string;
   virya: string;
   vipaka: string;
@@ -143,22 +144,23 @@ export default function HerbRemedies() {
           {herbs.map((herb) => (
             <div
               key={herb.id || herb.name}
-              className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md transition duration-200 flex flex-col justify-between"
+              className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg transition duration-200 flex flex-col justify-between group"
             >
-              <div>
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-display font-bold text-base text-slate-800">{herb.name}</h3>
-                    <span className="text-[10px] text-slate-400 font-bold block mt-0.5 italic">{herb.scientificName}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
+              {herb.imageUrl && (
+                <div className="h-40 w-full overflow-hidden relative bg-slate-100">
+                  <img
+                    src={herb.imageUrl}
+                    alt={herb.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  />
+                  <div className="absolute top-2 right-2 flex flex-wrap gap-1">
                     {herb.balances.map((d) => (
                       <span
                         key={d}
-                        className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                          d === 'Vata' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                          d === 'Pitta' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                          'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase shadow-sm ${
+                          d === 'Vata' ? 'bg-indigo-900/90 text-indigo-200 border border-indigo-700' :
+                          d === 'Pitta' ? 'bg-amber-900/90 text-amber-200 border border-amber-700' :
+                          'bg-emerald-900/90 text-emerald-200 border border-emerald-700'
                         }`}
                       >
                         {d[0]}
@@ -166,10 +168,18 @@ export default function HerbRemedies() {
                     ))}
                   </div>
                 </div>
+              )}
 
-                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">
-                  {herb.desc}
-                </p>
+              <div className="p-5 flex-grow flex flex-col justify-between">
+                <div>
+                  <div className="mb-3">
+                    <h3 className="font-display font-bold text-base text-slate-800">{herb.name}</h3>
+                    <span className="text-[10px] text-slate-400 font-bold block mt-0.5 italic">{herb.scientificName}</span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">
+                    {herb.desc}
+                  </p>
 
                 {/* Target diseases badges */}
                 <div className="flex flex-wrap gap-1.5 mb-6">
@@ -192,6 +202,7 @@ export default function HerbRemedies() {
               >
                 View Full Benefits <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </button>
+              </div>
             </div>
           ))}
         </div>
@@ -243,6 +254,12 @@ export default function HerbRemedies() {
                 Scientific: {activeHerb.scientificName} | Sanskrit: <strong className="text-primary-700 font-bold">{activeHerb.sanskritName}</strong>
               </span>
             </div>
+
+            {activeHerb.imageUrl && (
+              <div className="w-full h-48 rounded-2xl overflow-hidden relative border border-slate-100 shadow-sm">
+                <img src={activeHerb.imageUrl} alt={activeHerb.name} className="w-full h-full object-cover" />
+              </div>
+            )}
 
             {/* Energy profile */}
             <div className="grid grid-cols-3 gap-2 text-center p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
