@@ -24,11 +24,13 @@ export default function DoctorConsultationRoom() {
   const [data, setData] = useState<any>(null);
   const [catalog, setCatalog] = useState<any[]>([]);
 
-  // Google Meet & 1:30 hr Timer states
-  const [googleMeetUrl, setGoogleMeetUrl] = useState('');
+  // Video & 1:30 hr Timer states
   const [timeLeftStr, setTimeLeftStr] = useState('1h 30m 00s');
   const [isExpired, setIsExpired] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
+
+  // Embedded video iframe room URL
+  const embedVideoUrl = `https://meet.jit.si/AyurCare-Consultation-${appointmentId}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','desktop','fullscreen','hangup']`;
 
   // Socket.io / Chat states
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -76,10 +78,6 @@ export default function DoctorConsultationRoom() {
         setNotes(json.appointment.consultation?.notes || '');
         setPrivateNotes(json.appointment.consultation?.privateDoctorNotes || '');
         setDiagnosis(json.appointment.consultation?.diagnosis || '');
-
-        // Construct unique Google Meet link for this session
-        const meetCode = `ayur-meet-${appointmentId.substring(0, 8)}`;
-        setGoogleMeetUrl(`https://meet.google.com/${meetCode}`);
       } else {
         router.push('/doctor/dashboard');
       }
@@ -148,7 +146,7 @@ export default function DoctorConsultationRoom() {
     socketInstance.on('user-joined', ({ userName }) => {
       setMessages((prev) => [
         ...prev,
-        { system: true, message: `System: Patient ${userName} joined the Google Meet session.` }
+        { system: true, message: `System: Patient ${userName} joined the video consultation.` }
       ]);
     });
 
@@ -327,7 +325,7 @@ export default function DoctorConsultationRoom() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-primary-800 bg-cream">
-        <Loader2 className="w-8 h-8 animate-spin mr-2" /> Loading Google Meet consultation workspace...
+        <Loader2 className="w-8 h-8 animate-spin mr-2" /> Loading video consultation workspace...
       </div>
     );
   }
@@ -344,15 +342,15 @@ export default function DoctorConsultationRoom() {
   return (
     <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 h-[85vh] overflow-hidden font-sans text-slate-800" id="consultation-room">
       
-      {/* Left Column: Google Meet Portal Container & Live Chat (7 cols) */}
+      {/* Left Column: Direct Embedded Video Stream & Live Chat (7 cols) */}
       <section className="lg:col-span-7 flex flex-col justify-between h-full bg-slate-900 border border-slate-880 rounded-2xl overflow-hidden shadow-2xl relative">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-600 to-gold-600 z-10"></div>
 
-        {/* Google Meet Container Header */}
+        {/* Video Header */}
         <div className="bg-slate-950 p-4 border-b border-slate-850 flex justify-between items-center text-white z-10">
           <div className="flex items-center space-x-2">
             <Video className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-display font-bold text-xs sm:text-sm">Google Meet Encrypted Portal</h3>
+            <h3 className="font-display font-bold text-xs sm:text-sm">AyurCare Live Video Consultation</h3>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-[11px] font-bold text-gold-400 bg-gold-950/60 px-3 py-1 rounded-full border border-gold-800/40 flex items-center">
@@ -361,34 +359,16 @@ export default function DoctorConsultationRoom() {
           </div>
         </div>
 
-        {/* Google Meet Embed & Action Box */}
-        <div className="flex-1 p-5 bg-slate-950 flex flex-col justify-between relative">
+        {/* Embedded Video Feed Container */}
+        <div className="flex-1 p-3 bg-slate-950 flex flex-col justify-between relative min-h-[50%]">
           {!isExpired ? (
-            <div className="h-full border border-slate-800 rounded-xl bg-slate-900/90 p-6 flex flex-col items-center justify-center text-center space-y-5 shadow-inner">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                <Video className="w-8 h-8 animate-pulse" />
-              </div>
-
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-white text-base">Encrypted Google Meet Room Active</h4>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  Consultation with <strong>{patientName}</strong> is ready. Click below to launch your Google Meet video call.
-                </p>
-              </div>
-
-              <div className="w-full max-w-md bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 font-mono flex items-center justify-between">
-                <span className="truncate mr-2">{googleMeetUrl}</span>
-                <span className="text-emerald-400 font-bold uppercase text-[9px] bg-emerald-950 px-2 py-0.5 rounded">AES-256</span>
-              </div>
-
-              <a
-                href={googleMeetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition duration-200 flex items-center cursor-pointer"
-              >
-                Launch Encrypted Google Meet Room <ExternalLink className="w-4 h-4 ml-2" />
-              </a>
+            <div className="w-full h-full relative rounded-xl overflow-hidden border border-slate-800 shadow-inner">
+              <iframe
+                src={embedVideoUrl}
+                allow="camera; microphone; display-capture; autoplay; clipboard-write"
+                className="w-full h-full border-0 bg-slate-900"
+                title="AyurCare Video Consultation"
+              />
             </div>
           ) : (
             <div className="h-full border border-slate-800 rounded-xl bg-slate-900/90 p-6 flex flex-col items-center justify-center text-center space-y-4 shadow-inner">
@@ -402,7 +382,7 @@ export default function DoctorConsultationRoom() {
         </div>
 
         {/* Live Chat Panel */}
-        <div className="h-[40%] flex flex-col justify-between bg-slate-900 border-t border-slate-850 p-4">
+        <div className="h-[35%] flex flex-col justify-between bg-slate-900 border-t border-slate-850 p-4">
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar">
             {messages.map((msg, idx) => {
               if (msg.system) {
@@ -418,7 +398,7 @@ export default function DoctorConsultationRoom() {
                   <div className={`max-w-[85%] rounded-xl p-3 text-xs font-semibold leading-relaxed ${
                     isDoctor 
                       ? 'bg-primary-850 text-white rounded-tr-none border border-primary-800' 
-                      : 'bg-slate-955 text-slate-300 rounded-tl-none border border-slate-850'
+                      : 'bg-slate-955 text-slate-300 rounded-tl-none border border-slate-855'
                   }`}>
                     <span className="block text-[9px] text-slate-500 font-bold uppercase mb-1">{msg.senderName}</span>
                     <p>{msg.message}</p>
@@ -803,7 +783,7 @@ export default function DoctorConsultationRoom() {
                       onChange={(e) => setFollowupType(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-250 bg-white text-xs font-semibold"
                     >
-                      <option value="VIDEO">Google Meet Video</option>
+                      <option value="VIDEO">Video Consultation</option>
                       <option value="AUDIO">Audio Call</option>
                       <option value="CHAT">Text Chat</option>
                     </select>
