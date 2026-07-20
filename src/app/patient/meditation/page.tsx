@@ -365,12 +365,19 @@ export default function MeditationSpace() {
             }`}></div>
             
             {/* Middle breathing sphere */}
-            <div className={`absolute w-36 h-36 rounded-full border-2 border-indigo-200/50 bg-indigo-50/50 flex items-center justify-center transition-transform duration-[4000ms] ease-in-out ${
+            <div
+              onClick={toggleTimer}
+              className={`absolute w-36 h-36 rounded-full border-2 border-indigo-200/50 bg-indigo-50/50 flex flex-col items-center justify-center transition-transform duration-[4000ms] ease-in-out cursor-pointer hover:scale-105 select-none ${
               isRunning ? 'scale-110' : 'scale-95'
-            }`}>
+            }`}
+              title={isRunning ? 'Click to Pause meditation' : 'Click to Start meditation'}
+            >
               <div className="text-3xl font-mono font-bold text-slate-800 tracking-wider">
                 {formatTime(timeLeft)}
               </div>
+              <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">
+                {isRunning ? 'PAUSE' : 'START'}
+              </span>
             </div>
           </div>
 

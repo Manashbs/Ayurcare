@@ -337,33 +337,28 @@ export default function BreathingSpace() {
             </div>
 
             {/* Interactive Breathing Sphere */}
-            <div className="my-6 flex items-center justify-center relative" style={{ zIndex: 30 }}>
+            <div className="my-8 flex items-center justify-center relative">
               {/* Outer halo pulsing glow */}
-              <div className="absolute w-52 h-52 rounded-full border border-dashed border-slate-800 animate-spin-slow" style={{ pointerEvents: 'none' }}></div>
+              <div className="absolute w-52 h-52 rounded-full border-2 border-dashed border-slate-800 animate-spin-slow"></div>
               
-              {/* Actual breathing sphere - CLICKABLE */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleTogglePlay();
-                }}
-                style={{ position: 'relative', zIndex: 50 }}
-                className={`w-40 h-40 rounded-full border-4 flex flex-col items-center justify-center transition-all ease-in-out duration-[1500ms] shadow-2xl cursor-pointer focus:outline-none hover:opacity-80 active:scale-95 ${getCircleScaleClass()} ${getPhaseColorClass()}`}
+              {/* Actual breathing sphere */}
+              <div
+                onClick={() => handleTogglePlay()}
+                className={`w-44 h-44 rounded-full border-4 flex flex-col items-center justify-center transition-all ease-in-out duration-1000 shadow-2xl relative z-10 cursor-pointer hover:scale-105 select-none ${getCircleScaleClass()} ${getPhaseColorClass()}`}
+                title={isActive ? 'Click to Pause exercise' : 'Click GO to Start exercise'}
               >
-                <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 pointer-events-none">
+                <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">
                   {isActive ? phase.name : 'Ready'}
                 </span>
-                <span className="text-3xl font-extrabold mt-1 pointer-events-none">
+                <span className="text-3xl font-extrabold mt-1">
                   {isActive ? phaseSecondsLeft : 'GO'}
                 </span>
                 {phase.name === 'Hold' && isActive && (
-                  <span className="text-[8px] uppercase font-bold tracking-wide mt-0.5 animate-pulse pointer-events-none">
+                  <span className="text-[8px] uppercase font-bold tracking-wide mt-0.5 animate-pulse">
                     Hold Breath
                   </span>
                 )}
-              </button>
+              </div>
             </div>
 
             {/* Controller Dashboard */}
