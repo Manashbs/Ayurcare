@@ -5,15 +5,24 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Stethoscope, AlertCircle, UploadCloud, Camera, Check, User } from 'lucide-react';
 
-function compressImageFile(file: File, maxWidth = 600, maxHeight = 800, quality = 0.65): Promise<string> {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve((e.target?.result as string) || '');
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImageFile(file: File, maxWidth = 800, maxHeight = 1000, quality = 0.7): Promise<string> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      readFileAsDataUrl(file).then(resolve);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       const src = e.target?.result as string;
-      if (!file.type.startsWith('image/')) {
-        resolve(src);
-        return;
-      }
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -121,8 +130,8 @@ export default function DoctorSignup() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      const width = 300;
-      const height = 380;
+      const width = 360;
+      const height = 450;
 
       canvas.width = width;
       canvas.height = height;
@@ -132,7 +141,7 @@ export default function DoctorSignup() {
         context.translate(width, 0);
         context.scale(-1, 1);
         context.drawImage(video, 0, 0, width, height);
-        const base64 = canvas.toDataURL('image/jpeg', 0.65);
+        const base64 = canvas.toDataURL('image/jpeg', 0.7);
         if (base64 && base64.length > 100) {
           setCapturedImage(base64);
         }
@@ -231,7 +240,7 @@ export default function DoctorSignup() {
       } else {
         const text = await res.text();
         if (res.status === 413 || text.includes('Request Entity')) {
-          setError('Registration failed: Uploaded file or photo size is too large (max 2MB). Please select a smaller file.');
+          setError('Registration failed: Uploaded file or photo size is too large (max 3MB). Please select a smaller file.');
           return;
         }
         setError(`Server returned an error (${res.status}). Please try again.`);
@@ -507,18 +516,13 @@ export default function DoctorSignup() {
                     const file = e.target.files?.[0];
                     if (file) {
                       setUploadName(file.name);
-                      if (file.size > 2 * 1024 * 1024) {
-                        setError('Document size must be under 2MB. Please select a smaller scan or PDF.');
+                      if (file.size > 3.5 * 1024 * 1024) {
+                        setError('Document size must be under 3.5MB. Please select a smaller scan or PDF.');
                         setUploadDataUrl('');
                         return;
                       }
                       setError('');
-                      const compressed = await compressImageFile(file, 800, 1000, 0.6);
-                      if (compressed.length > 2 * 1024 * 1024) {
-                        setError('Document size exceeds 2MB limit. Please upload a smaller scan.');
-                        setUploadDataUrl('');
-                        return;
-                      }
+                      const compressed = await compressImageFile(file, 800, 1000, 0.7);
                       setUploadDataUrl(compressed);
                     }
                   }}
@@ -526,7 +530,7 @@ export default function DoctorSignup() {
                 />
                 <UploadCloud className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                 <span className="text-xs font-semibold text-primary-600">Click to upload files</span>
-                <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG up to 2MB</p>
+                <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG up to 3.5MB</p>
                 {uploadName && (
                   <span className="text-xs font-bold text-green-600 block mt-2">✓ Selected: {uploadName}</span>
                 )}
@@ -592,7 +596,7 @@ export default function DoctorSignup() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const compressed = await compressImageFile(file, 400, 500, 0.6);
+                              const compressed = await compressImageFile(file, 400, 500, 0.7);
                               setCapturedImage(compressed);
                             }
                           }}

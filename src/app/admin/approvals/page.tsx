@@ -149,6 +149,14 @@ export default function DoctorApprovalsQueue() {
     }
   };
 
+  const getDocHref = (docStr?: string) => {
+    if (!docStr) return '#';
+    if (docStr.startsWith('data:') || docStr.startsWith('http://') || docStr.startsWith('https://')) {
+      return docStr;
+    }
+    return `/uploads/${docStr}`;
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn text-slate-100">
       {/* Header */}
@@ -251,7 +259,7 @@ export default function DoctorApprovalsQueue() {
                       <FileText className="w-8 h-8 text-emerald-500 flex-shrink-0" />
                       <div>
                         <strong className="text-slate-300 block font-semibold">Verification Proofs</strong>
-                        <span>Attached file: {isBase64Doc ? 'Uploaded_License_Certificate' : (profile.documents || 'medical_license.pdf')}</span>
+                        <span>Attached file: {isBase64Doc ? 'Uploaded_License_Certificate' : (profile.documents || 'No document uploaded')}</span>
                       </div>
                     </div>
                     <button
@@ -348,9 +356,9 @@ export default function DoctorApprovalsQueue() {
                         </div>
                       </div>
 
-                      {selectedDocForView.doctorProfile?.documents && (
+                      {selectedDocForView.doctorProfile?.documents ? (
                         <a 
-                          href={selectedDocForView.doctorProfile.documents} 
+                          href={getDocHref(selectedDocForView.doctorProfile.documents)} 
                           download={`${selectedDocForView.name.replace(/\s+/g, '_')}_medical_license`}
                           target="_blank" 
                           rel="noreferrer"
@@ -359,13 +367,20 @@ export default function DoctorApprovalsQueue() {
                           <Download className="w-3.5 h-3.5" />
                           <span>Download File</span>
                         </a>
+                      ) : (
+                        <span className="text-[11px] text-slate-500 italic">No File</span>
                       )}
                     </div>
 
-                    {/* Preview if document is image */}
+                    {/* Preview if document is image or PDF */}
                     {selectedDocForView.doctorProfile?.documents?.startsWith('data:image') && (
-                      <div className="w-full h-32 rounded bg-slate-950 overflow-hidden border border-slate-800 mt-2">
+                      <div className="w-full h-36 rounded bg-slate-950 overflow-hidden border border-slate-800 mt-2">
                         <img src={selectedDocForView.doctorProfile.documents} alt="Degree document preview" className="w-full h-full object-contain" />
+                      </div>
+                    )}
+                    {selectedDocForView.doctorProfile?.documents?.startsWith('data:application/pdf') && (
+                      <div className="w-full h-36 rounded bg-slate-950 overflow-hidden border border-slate-800 mt-2">
+                        <iframe src={selectedDocForView.doctorProfile.documents} className="w-full h-full border-0" title="PDF Document Preview" />
                       </div>
                     )}
                   </div>
