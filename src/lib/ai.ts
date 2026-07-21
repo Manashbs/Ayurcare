@@ -19,7 +19,7 @@ interface ChatMessage {
   content: string;
 }
 
-export async function getAiResponse(messages: ChatMessage[]): Promise<{ text: string; flagged: boolean }> {
+export async function getAiResponse(messages: ChatMessage[], userApiKey?: string): Promise<{ text: string; flagged: boolean }> {
   const latestMessage = messages[messages.length - 1]?.content || '';
   const latestLower = latestMessage.toLowerCase();
 
@@ -33,13 +33,13 @@ export async function getAiResponse(messages: ChatMessage[]): Promise<{ text: st
     };
   }
 
-  // 2. Delegate to Unified AI Provider (Gemini / Groq / OpenAI / Ollama / Deep Clinical Engine)
+  // 2. Delegate to Unified AI Provider (Gemini / Groq / OpenAI / Ollama / Dynamic Generative Engine)
   const aiMessages: AIChatMessage[] = messages.map(m => ({
     role: m.role,
     content: m.content
   }));
 
-  const aiResult = await generateAIResponse(aiMessages, SYSTEM_PROMPT);
+  const aiResult = await generateAIResponse(aiMessages, SYSTEM_PROMPT, userApiKey);
   
   let finalText = aiResult.text;
   if (!finalText.includes('Disclaimer')) {
