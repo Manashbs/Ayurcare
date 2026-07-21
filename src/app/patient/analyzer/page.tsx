@@ -190,7 +190,7 @@ export default function AIReportAnalyser() {
         }
       } catch (err) {
         setErrorMsg('Failed to establish connection to report analyser endpoint.');
-      } font-bold {
+      } finally {
         setIsScanning(false);
       }
     }, 2000);
