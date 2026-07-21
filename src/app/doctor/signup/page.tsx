@@ -223,7 +223,20 @@ export default function DoctorSignup() {
           },
         }),
       });
-      const data = await res.json();
+
+      const contentType = res.headers.get('content-type');
+      let data: any = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (res.status === 413 || text.includes('Request Entity')) {
+          setError('Registration failed: Uploaded file or photo size is too large (max 2MB). Please select a smaller file.');
+          return;
+        }
+        setError(`Server returned an error (${res.status}). Please try again.`);
+        return;
+      }
 
       if (res.ok) {
         // Redirect to pending review holding page directly
@@ -233,7 +246,7 @@ export default function DoctorSignup() {
       }
     } catch (err: any) {
       console.error('Registration fetch error:', err);
-      setError(err?.message || 'Registration failed. Payload may be too large.');
+      setError(err?.message || 'Registration failed. Network payload issue.');
     } finally {
       setLoading(false);
     }
@@ -494,7 +507,18 @@ export default function DoctorSignup() {
                     const file = e.target.files?.[0];
                     if (file) {
                       setUploadName(file.name);
-                      const compressed = await compressImageFile(file, 800, 1000, 0.65);
+                      if (file.size > 2 * 1024 * 1024) {
+                        setError('Document size must be under 2MB. Please select a smaller scan or PDF.');
+                        setUploadDataUrl('');
+                        return;
+                      }
+                      setError('');
+                      const compressed = await compressImageFile(file, 800, 1000, 0.6);
+                      if (compressed.length > 2 * 1024 * 1024) {
+                        setError('Document size exceeds 2MB limit. Please upload a smaller scan.');
+                        setUploadDataUrl('');
+                        return;
+                      }
                       setUploadDataUrl(compressed);
                     }
                   }}
@@ -502,7 +526,7 @@ export default function DoctorSignup() {
                 />
                 <UploadCloud className="w-8 h-8 mx-auto text-slate-400 mb-2" />
                 <span className="text-xs font-semibold text-primary-600">Click to upload files</span>
-                <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG up to 5MB</p>
+                <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG up to 2MB</p>
                 {uploadName && (
                   <span className="text-xs font-bold text-green-600 block mt-2">✓ Selected: {uploadName}</span>
                 )}
@@ -568,7 +592,7 @@ export default function DoctorSignup() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const compressed = await compressImageFile(file, 400, 500, 0.65);
+                              const compressed = await compressImageFile(file, 400, 500, 0.6);
                               setCapturedImage(compressed);
                             }
                           }}
