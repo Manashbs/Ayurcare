@@ -184,18 +184,23 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
       return NextResponse.json({ error: 'You cannot delete your own admin account.' }, { status: 400 });
     }
 
-    // Permanently delete user (relations are set to cascade delete in Prisma)
-    await prisma.user.delete({
-      where: { id: params.id },
-    });
-
-    // Write audit log
-    await prisma.auditLog.create({
-      data: {
-        actorUserId: admin.userId,
-        action: 'ADMIN_DELETE_USER',
-        metadata: JSON.stringify({ email: user.email, name: user.name, role: user.role }),
-      },
+    await prisma.$transaction(async (tx: any) => {
+      // 1. Delete associated cart items
+      await tx.cartItem.deleteMany({
+        where: { patientId: params.id },
+      });
+      // 2. Delete main User record (Prisma cascades DoctorProfile, PatientProfile, etc.)
+      await tx.user.delete({
+        where: { id: params.id },
+      });
+      // 3. Write audit log
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.userId,
+          action: 'ADMIN_DELETE_USER',
+          metadata: JSON.stringify({ email: user.email, name: user.name, role: user.role }),
+        },
+      });
     });
 
     return NextResponse.json({ message: 'User deleted permanently.' });

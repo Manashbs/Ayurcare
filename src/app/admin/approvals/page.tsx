@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, ShieldCheck, FileText, Check, X, Info, UserCheck, AlertTriangle, Camera, Eye, Download, ExternalLink } from 'lucide-react';
+import { Loader2, ShieldCheck, FileText, Check, X, Info, UserCheck, AlertTriangle, Camera, Eye, Download } from 'lucide-react';
 
 export default function DoctorApprovalsQueue() {
   const [pendingDoctors, setPendingDoctors] = useState<any[]>([]);
@@ -187,6 +187,7 @@ export default function DoctorApprovalsQueue() {
         <div className="grid grid-cols-1 gap-6">
           {pendingDoctors.map((doc) => {
             const profile = doc.doctorProfile || {};
+            const isBase64Doc = profile.documents && profile.documents.startsWith('data:');
             return (
               <div key={doc.id} className="bg-slate-900 border border-slate-800 rounded-xl p-6 lg:p-8 shadow-xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fadeIn">
                 
@@ -197,7 +198,7 @@ export default function DoctorApprovalsQueue() {
                     {profile.faceIdImage ? (
                       <div 
                         onClick={() => setSelectedDocForView(doc)}
-                        className="w-16 h-20 bg-slate-950 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-2 border-primary-500 flex-shrink-0 shadow-lg cursor-pointer hover:opacity-85 transition"
+                        className="w-16 h-20 bg-slate-950 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-2 border-emerald-500 flex-shrink-0 shadow-lg cursor-pointer hover:opacity-85 transition"
                         title="Click to zoom Face ID"
                       >
                         <img src={profile.faceIdImage} alt="Face ID scan" className="w-full h-full object-cover" />
@@ -250,7 +251,7 @@ export default function DoctorApprovalsQueue() {
                       <FileText className="w-8 h-8 text-emerald-500 flex-shrink-0" />
                       <div>
                         <strong className="text-slate-300 block font-semibold">Verification Proofs</strong>
-                        <span>Attached file: {profile.documents || 'medical_license.pdf'}</span>
+                        <span>Attached file: {isBase64Doc ? 'Uploaded_License_Certificate' : (profile.documents || 'medical_license.pdf')}</span>
                       </div>
                     </div>
                     <button
@@ -258,7 +259,7 @@ export default function DoctorApprovalsQueue() {
                       className="px-3 py-1.5 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded flex items-center space-x-1.5 cursor-pointer transition shadow"
                     >
                       <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>View File Credentials</span>
+                      <span>View & Download Document</span>
                     </button>
                   </div>
                 </div>
@@ -318,46 +319,61 @@ export default function DoctorApprovalsQueue() {
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center text-center">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Live Face ID Scan</span>
                 {selectedDocForView.doctorProfile?.faceIdImage ? (
-                  <div className="w-32 h-40 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-2 border-emerald-500 shadow-xl mb-2">
+                  <div className="w-36 h-48 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-4 border-emerald-500 shadow-xl mb-2">
                     <img src={selectedDocForView.doctorProfile.faceIdImage} alt="Face ID" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-32 h-40 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] flex items-center justify-center text-slate-600 mb-2 border border-slate-800">
-                    <Camera className="w-8 h-8" />
+                  <div className="w-36 h-48 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] flex flex-col items-center justify-center text-slate-600 mb-2 border border-slate-800">
+                    <Camera className="w-10 h-10 mb-1 text-slate-500" />
+                    <span className="text-[10px] text-slate-500">No Photo</span>
                   </div>
                 )}
-                <span className="text-[11px] font-bold text-emerald-400 mt-1">✓ Facial Recognition Matched</span>
+                <span className="text-[11px] font-bold text-emerald-400 mt-1">✓ Facial Identity Recorded</span>
               </div>
 
               {/* Verified Documents */}
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block border-b border-slate-800 pb-2">
-                  Uploaded Documents
+                  Uploaded Documents & Proofs
                 </span>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-800">
-                    <div className="flex items-center space-x-2 text-xs">
-                      <FileText className="w-5 h-5 text-red-400" />
-                      <div>
-                        <strong className="text-slate-200 block">{selectedDocForView.doctorProfile?.documents || 'Medical_Degree_License.pdf'}</strong>
-                        <span className="text-[10px] text-slate-500">Degree & Registration Verification</span>
+                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-5 h-5 text-emerald-400" />
+                        <div>
+                          <strong className="text-slate-200 block font-semibold">Degree & License Proof</strong>
+                          <span className="text-[10px] text-slate-400">Medical Reg: {selectedDocForView.doctorProfile?.regNumber}</span>
+                        </div>
                       </div>
+
+                      {selectedDocForView.doctorProfile?.documents && (
+                        <a 
+                          href={selectedDocForView.doctorProfile.documents} 
+                          download={`${selectedDocForView.name.replace(/\s+/g, '_')}_medical_license`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold flex items-center space-x-1 shadow"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download File</span>
+                        </a>
+                      )}
                     </div>
-                    <a 
-                      href={`/uploads/${selectedDocForView.doctorProfile?.documents || 'sample_license.pdf'}`} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md text-xs font-semibold flex items-center space-x-1"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </a>
+
+                    {/* Preview if document is image */}
+                    {selectedDocForView.doctorProfile?.documents?.startsWith('data:image') && (
+                      <div className="w-full h-32 rounded bg-slate-950 overflow-hidden border border-slate-800 mt-2">
+                        <img src={selectedDocForView.doctorProfile.documents} alt="Degree document preview" className="w-full h-full object-contain" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-xs space-y-1">
                     <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Aadhaar Card Identification</span>
                     <p className="font-mono text-slate-200 text-sm font-semibold tracking-widest">
-                      {selectedDocForView.doctorProfile?.aadhaarNumber ? selectedDocForView.doctorProfile.aadhaarNumber.replace(/(\d{4})/g, '$1 ').trim() : 'Verified ID Card'}
+                      {selectedDocForView.doctorProfile?.aadhaarNumber ? selectedDocForView.doctorProfile.aadhaarNumber.replace(/(\d{4})/g, '$1 ').trim() : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -367,13 +383,13 @@ export default function DoctorApprovalsQueue() {
             <div className="flex justify-end space-x-3 border-t border-slate-800 pt-4">
               <button 
                 onClick={() => setSelectedDocForView(null)} 
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg cursor-pointer"
               >
                 Close Audit
               </button>
               <button 
                 onClick={() => handleApproval(selectedDocForView.id)} 
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5 mr-1" /> Approve Doctor
               </button>
