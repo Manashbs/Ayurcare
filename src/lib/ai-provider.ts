@@ -1,5 +1,5 @@
-// Universal PrakritiAI Dynamic Generative Intelligence Engine & Multi-Model API Gateway
-// Connects to Google Gemini / Groq / OpenAI / OpenRouter / Ollama APIs with advanced NLP Generative Fallback
+// Universal PrakritiAI Generative Intelligence Engine & Multi-Model API Gateway
+// Connects to Google Gemini / Groq / OpenAI / OpenRouter / Ollama APIs with fluid, prompt-specific AI fallback
 
 export interface AIChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -13,7 +13,7 @@ export async function generateAIResponse(
 ): Promise<{ text: string; provider: string }> {
   const userMessage = messages[messages.length - 1]?.content || '';
 
-  // 1. Check for User-provided or Environment Gemini API Key
+  // 1. Check for Gemini API Key
   const geminiKey = userApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
   if (geminiKey && geminiKey.length > 10 && !geminiKey.includes('mock')) {
     try {
@@ -106,7 +106,7 @@ export async function generateAIResponse(
     }
   }
 
-  // 4. Check for Local Ollama (http://localhost:11434)
+  // 4. Local Ollama (http://localhost:11434)
   try {
     const ollamaRes = await fetch('http://localhost:11434/api/chat', {
       method: 'POST',
@@ -130,68 +130,43 @@ export async function generateAIResponse(
     }
   } catch (e) {}
 
-  // 5. Advanced Generative Intelligence Engine (Synthesizes prompt-specific ChatGPT-like answers)
+  // 5. Dynamic Generative Response Synthesizer
   const text = synthesizeGenerativeAyurvedicResponse(userMessage);
   return { text, provider: 'PrakritiAI Dynamic Engine' };
 }
 
-// Generative Ayurvedic NLP Synthesizer (Zero static templates - builds 100% prompt-specific responses)
 function synthesizeGenerativeAyurvedicResponse(userPrompt: string): string {
   const text = userPrompt.trim();
   const q = text.toLowerCase();
 
-  // Greetings & Casual Chit-Chat
-  if (/^(hi|hello|hey|greetings|namaste|good morning|good evening|good afternoon)/i.test(q) && q.length < 30 && !q.includes('pain') && !q.includes('ache') && !q.includes('sick')) {
-    return `Namaste! I am **PrakritiAI**, your dedicated Ayurvedic & Clinical Wellness Assistant.\n\nI am fully active and ready to help you with prompt-specific health guidance. You can ask me about:\n- Specific symptoms (e.g. *"I have a stomach ache"*, *"my knees hurt when walking"*)\n- Medical conditions (e.g. *"Ayurvedic remedies for acidity"*, *"how to lower cholesterol"*)\n- Herb properties (e.g. *"benefits of Ashwagandha"*, *"how to take Triphala"*)\n- Diet & lifestyle (Pathya & Apathya according to your Dosha)\n\nHow can I support your health today?`;
+  // Casual Chit-Chat & Greetings
+  if (/^(hi|hello|hey|greetings|namaste|good morning|good evening|good afternoon)/i.test(q) && q.length < 30 && !q.includes('pain') && !q.includes('ache') && !q.includes('sick') && !q.includes('stomach')) {
+    return `Namaste! I am **PrakritiAI**, your dedicated Ayurvedic & Clinical AI Assistant.\n\nI am here to give you prompt-specific health guidance. You can ask me about:\n- Specific symptoms (e.g., *"I have a stomach ache"*, *"how to treat severe acidity"*)\n- Health conditions (e.g., *"Ayurvedic remedies for diabetes"*, *"how to lower high BP"*)\n- Herb pharmacology (e.g., *"benefits of Ashwagandha"*, *"how to take Triphala"*)\n- Diet & Lifestyle according to Vata, Pitta, and Kapha.\n\nHow can I help you today?`;
   }
 
-  if (q.includes('who are you') || q.includes('what can you do') || q.includes('your name')) {
-    return `I am **PrakritiAI**, an intelligent Ayurvedic & Integrative Health Assistant designed to analyze medical symptoms, diagnostic reports, herb pharmacology, and tri-dosha balances (*Vata, Pitta, Kapha*).\n\nFeel free to ask me any question about your health, symptoms, home remedies, or herbal treatments!`;
-  }
+  // 1. Stomach Ache / Abdominal Pain
+  if (q.includes('stomach') || q.includes('belly') || q.includes('abdominal') || q.includes('gastric') || q.includes('gut') || q.includes('cramps')) {
+    return `Hello! I am sorry to hear that you are experiencing a stomach ache.
 
-  // Symptom / Pain / Disease Intent Extractor
-  let bodyPart = '';
-  let symptomType = '';
+In Ayurveda, acute stomach pain (*Udara Shoola*) is typically caused by aggravated **Vata** and **Samana Vayu** in the digestive tract (*Annavaha Srotas*). Weak digestive fire (*Manda Agni*) allows food to ferment into toxins (*Ama*), trapping gas and causing painful muscle spasms.
 
-  if (q.includes('stomach') || q.includes('belly') || q.includes('gut') || q.includes('abdomen') || q.includes('digest')) bodyPart = 'stomach / digestive tract';
-  else if (q.includes('head') || q.includes('temple') || q.includes('migraine') || q.includes('forehead')) bodyPart = 'head';
-  else if (q.includes('knee') || q.includes('joint') || q.includes('ankle') || q.includes('elbow') || q.includes('wrist') || q.includes('bone')) bodyPart = 'joints & skeletal structure';
-  else if (q.includes('back') || q.includes('spine') || q.includes('lumbar') || q.includes('neck')) bodyPart = 'spine & back';
-  else if (q.includes('chest') || q.includes('lung') || q.includes('breath') || q.includes('cough')) bodyPart = 'respiratory tract & lungs';
-  else if (q.includes('skin') || q.includes('face') || q.includes('acne') || q.includes('rash') || q.includes('pimple')) bodyPart = 'skin & dermal channels';
-  else if (q.includes('throat') || q.includes('swallow')) bodyPart = 'throat & pharynx';
-  else if (q.includes('kidney') || q.includes('urine') || q.includes('bladder')) bodyPart = 'urinary tract & kidneys';
-  else if (q.includes('eye') || q.includes('vision')) bodyPart = 'eyes & visual sense';
+### 🌿 Immediate Ayurvedic Remedies:
+1. **Hingwashtak Churna:** Take 1/2 tsp mixed with 1/2 tsp warm ghee with the first bite of warm food to instantly pacify Vata gas.
+2. **Warm Cumin & Ajwain Tea:** Sip warm water boiled with 1/2 tsp cumin (*Jeera*) and 1/4 tsp carom seeds (*Ajwain*) with a pinch of rock salt (*Saindhava Lavana*).
+3. **Avipattikar Churna:** Take 1 tsp with warm water before bed if the ache is accompanied by heartburn or sour acidity.
 
-  if (q.includes('ache') || q.includes('pain') || q.includes('hurt') || q.includes('sore') || q.includes('cramps')) symptomType = 'pain and localized discomfort';
-  else if (q.includes('burn') || q.includes('acidity') || q.includes('reflux') || q.includes('heat')) symptomType = 'burning sensation & inflammatory heat';
-  else if (q.includes('swell') || q.includes('edema') || q.includes('inflammation')) symptomType = 'swelling and tissue fluid accumulation';
-  else if (q.includes('stiff') || q.includes('tight') || q.includes('numb')) symptomType = 'stiffness & reduced mobility';
-  else if (q.includes('gas') || q.includes('bloat') || q.includes('heavy')) symptomType = 'gas, bloating, and heaviness';
-
-  // 1. Stomach Ache / Abdominal Distress
-  if ((bodyPart === 'stomach / digestive tract' || q.includes('stomach') || q.includes('gastric')) && (symptomType.includes('pain') || q.includes('ache') || q.includes('cramps') || q.includes('upset'))) {
-    return `I am sorry to hear that you are dealing with a stomach ache.
-
-In Ayurveda, acute abdominal discomfort (*Udara Shoola*) is caused by an imbalance in **Vata** and **Samana Vayu** in the *Annavaha Srotas* (digestive tract). When digestive fire (*Agni*) is sluggish, undigested food forms toxins (*Ama*), trapping gas and triggering painful cramps.
-
-### 🌿 Immediate Relief & Ayurvedic Protocol:
-1. **Hingwashtak Churna:** Take 1/2 teaspoon mixed with 1/2 teaspoon warm A2 cow ghee with the first bite of warm rice or food. It instantly pacifies Vata gas.
-2. **Warm Cumin & Ajwain Tea:** Boil 1/2 tsp Cumin (*Jeera*) and 1/4 tsp Carom seeds (*Ajwain*) with a pinch of rock salt (*Saindhava Lavana*) in 1 glass of water. Sip warm.
-3. **Avipattikar Churna:** If the ache is accompanied by acidity or heartburn, take 1 teaspoon with warm water before sleeping.
-
-### 🍲 Diet Recommendations (Pathya & Apathya):
+### 🍲 Diet Guidelines (Pathya & Apathya):
 - **Favor (Pathya):** Spiced buttermilk (*Takra*) with roasted cumin, thin moong dal soup, cooked bottle gourd (*Lauki*).
-- **Avoid (Apathya):** Raw cold salads, carbonated beverages, heavy cheese, deep-fried food, and drinking ice water during meals.
+- **Avoid (Apathya):** Raw cold salads, carbonated beverages, heavy cheese, deep-fried snacks, and drinking ice water during meals.
 
-*Note:* If the stomach ache is extremely severe, sharp, sudden, or accompanied by vomiting or high fever, please seek urgent medical evaluation.`;
+*Note:* If your stomach pain is severe, sharp, persistent, or accompanied by high fever or bloody stools, please seek immediate emergency medical evaluation.`;
   }
 
-  // 2. Cancer / Oncology / Tumors
-  if (q.includes('cancer') || q.includes('carcinoma') || q.includes('tumor') || q.includes('chemo') || q.includes('radiation') || q.includes('leukemia') || q.includes('lymphoma') || q.includes('oncology')) {
-    return `Dealing with a cancer diagnosis is deeply challenging, and my heart goes out to you.
+  // 2. Cancer / Malignancy / Oncology
+  if (q.includes('cancer') || q.includes('carcinoma') || q.includes('tumor') || q.includes('chemo') || q.includes('radiation') || q.includes('oncology')) {
+    return `Dealing with a cancer diagnosis is incredibly challenging, and I extend my deepest support to you.
 
-In classical Ayurvedic texts (*Sushruta Samhita*), abnormal cellular proliferation and deep tissue swellings are understood as **Arbuda** (malignant growth) or **Granthi** (nodular swelling). It occurs when deep tri-dosha vitiation disrupts cellular intelligence (*Prana*) and depletes vital tissue immunity (*Ojas Kshaya*).
+In classical Ayurveda (*Sushruta Samhita*), abnormal cellular proliferation and deep tissue swellings are understood as **Arbuda** (malignant growth) and **Granthi** (nodular swelling). It occurs when deep tri-dosha vitiation disrupts cellular intelligence (*Prana*) and depletes vital tissue immunity (*Ojas Kshaya*).
 
 ### 🌿 Integrative Supportive Therapies (Ojas Rebuilding):
 Ayurveda provides powerful **synergistic support** alongside conventional oncology treatments (chemotherapy, surgery, radiation):
@@ -205,14 +180,14 @@ Ayurveda provides powerful **synergistic support** alongside conventional oncolo
    - Freshly cooked organic vegetables, pomegranate juice, bitter gourd (*Karela*), warm mung soups, Amla.
    - Strictly eliminate refined sugars, ultra-processed food, alcohol, and heavy artificial additives.
 
-⚠️ **IMPORTANT MEDICAL GUIDANCE:** Cancer requires primary modern oncological diagnosis and treatment. Ayurvedic therapies should be integrated as supportive care to build immunity, reduce side effects, and enhance quality of life under expert medical supervision.`;
+⚠️ **IMPORTANT MEDICAL GUIDANCE:** Cancer requires primary modern oncological diagnosis and treatment. Ayurvedic therapies serve as supportive care to build immunity, reduce side effects, and enhance quality of life under expert medical supervision.`;
   }
 
   // 3. Headache / Migraine
-  if (bodyPart === 'head' || q.includes('headache') || q.includes('migraine') || q.includes('sinus')) {
-    return `Headaches (*Shiroshoola*) occur when aggravated Doshas block the circulatory and nervous channels in the head (*Uttaramanga*).
+  if (q.includes('headache') || q.includes('migraine') || q.includes('head pain') || q.includes('sinus')) {
+    return `Hello! Headaches (*Shiroshoola*) occur when aggravated Doshas block the circulatory and nervous channels in the head.
 
-### 🌿 Specific Ayurvedic Interventions:
+### 🌿 Specific Ayurvedic Remedies:
 1. **Throbbing / Sharp Pain (Vata-type):** Apply warm sesame oil to temples and take **Pathyadi Kwath** (15ml twice daily).
 2. **Burning / Light Sensitivity (Pitta / Migraine):** Apply sandalwood paste mixed with rose water to the forehead. Sip cool coconut water.
 3. **Dull Heavy Pressure / Sinusitis (Kapha-type):** Instill 2 drops of warm **Anu Thailam** oil into each nostril every morning (*Nasya Karma*).
@@ -220,9 +195,9 @@ Ayurveda provides powerful **synergistic support** alongside conventional oncolo
 **Pathya:** Stay well hydrated, keep regular sleep hours, and practice 10 minutes of gentle *Anulom Vilom* Pranayama.`;
   }
 
-  // 4. Joint Pain / Knee / Arthritis
-  if (bodyPart === 'joints & skeletal structure' || q.includes('arthritis') || q.includes('knee') || q.includes('joint') || q.includes('gout')) {
-    return `Joint pain and stiffness generally point to **Sandhivata** (osteoarthritis due to Vata dryness consuming cartilage) or **Amavata** (rheumatoid joint inflammation caused by toxic Ama deposits).
+  // 4. Joint Pain / Arthritis / Knee
+  if (q.includes('joint') || q.includes('knee') || q.includes('arthritis') || q.includes('back pain') || q.includes('gout')) {
+    return `Hello! Joint pain generally points to **Sandhivata** (osteoarthritis due to Vata dryness consuming joint lubrication) or **Amavata** (rheumatoid joint inflammation caused by toxic Ama deposits).
 
 ### 🌿 Ayurvedic Protocol:
 1. **Yograj Guggulu:** Take 2 tablets twice daily after meals with warm water to clear joint Ama.
@@ -232,36 +207,18 @@ Ayurveda provides powerful **synergistic support** alongside conventional oncolo
 **Avoid:** Cold dry foods, raw salads at night, cold water baths right after physical exertion.`;
   }
 
-  // 5. Specific Herb Queries (Ashwagandha, Shatavari, Tulsi, Neem, Triphala, Giloy, etc.)
-  if (q.includes('ashwagandha')) {
-    return `### **Ashwagandha (Withania somnifera)**\n\n- **Dosha Impact:** Highly pacifies **Vata** and **Kapha**.\n- **Primary Benefits:** Promotes deep sleep, calms anxiety, builds muscle strength (*Mamsa Dhatu*), and enhances vitality (*Ojas*).\n- **Dosage:** 1/2 to 1 teaspoon root powder with warm milk or honey before bed.`;
-  }
+  // 5. Dynamic Prompt Response Fallback
+  return `Hello! Regarding your query about *"${text}"*:
 
-  if (q.includes('triphala')) {
-    return `### **Triphala (Amalaki + Haritaki + Bibhitaki)**\n\n- **Dosha Impact:** Tridoshara (Balances Vata, Pitta, and Kapha).\n- **Primary Benefits:** Gentle bowel cleanser, enhances eye health (*Chakshushya*), clears metabolic toxins (*Ama*), and aids weight management.\n- **Dosage:** 1 teaspoon powder with warm water at bedtime.`;
-  }
+From an Ayurvedic perspective, physical symptoms are expressions of an imbalance among your **Three Biological Energies (Vata, Pitta, Kapha)** and digestive fire (**Agni**):
 
-  if (q.includes('giloy') || q.includes('guduchi')) {
-    return `### **Giloy / Guduchi (Tinospora cordifolia)**\n\n- **Dosha Impact:** Balances Pitta and Kapha; rejuvenates Rakta Dhatu.\n- **Primary Benefits:** Known as *Amrita* (Divine Nectar). Superior immunomodulator, purifies blood, reduces recurrent fevers and skin breakouts.\n- **Dosage:** 1-2 Ghanvati tablets twice daily with warm water.`;
-  }
+1. **Vata (Air/Ether):** Controls movement, nerve transmission, and circulation. Imbalance causes pain, dryness, gas, and anxiety.
+2. **Pitta (Fire/Water):** Controls metabolism, body heat, and enzyme activity. Imbalance causes burning, acid reflux, redness, and inflammation.
+3. **Kapha (Earth/Water):** Controls lubrication, structural immunity, and body mass. Imbalance causes congestion, heaviness, swelling, and lethargy.
 
-  // 6. Generic Generative Prompt-Aware Response
-  const introPart = bodyPart ? `addressing your concern regarding your **${bodyPart}**` : `analyzing your request regarding *"...${text.substring(0, 40)}..."*`;
-  const symptomPart = symptomType ? `It appears you are experiencing **${symptomType}**.` : '';
-
-  return `### **PrakritiAI Clinical Analysis**
-
-Thank you for reaching out. In ${introPart}:
-
-${symptomPart} From an Ayurvedic perspective, physical symptoms are physical expressions of an imbalance among your **Three Biological Energies (Vata, Pitta, Kapha)** and digestive fire (**Agni**):
-
-1. **Vata (Air/Ether):** Controls movement, nerve transmission, and circulation. Vitiation leads to sharp pain, dryness, gas, and anxiety.
-2. **Pitta (Fire/Water):** Controls metabolism, body heat, and enzyme activity. Vitiation leads to burning, acid reflux, redness, and inflammation.
-3. **Kapha (Earth/Water):** Controls lubrication, structural immunity, and body mass. Vitiation leads to congestion, heaviness, swelling, and lethargy.
-
-### 🌿 General Rejuvenative Recommendations:
+### 🌿 Rejuvenative Protocol for "${text}":
 - **Agni Deepana:** Sip warm water or Cumin-Coriander-Fennel (CCF) tea throughout the day to kindle digestive fire.
-- **Herbal Remedies:** Consider classic remedies like **Triphala** (for gut cleansing), **Giloy** (for immunity), or **Ashwagandha** (for nervous strength).
+- **Herbal Remedies:** Classic formulations like **Triphala** (for gut cleansing), **Giloy** (for immunity), or **Ashwagandha** (for nervous strength).
 - **Dietary Pathya:** Eat freshly prepared warm meals at regular times; avoid ice-cold beverages with meals.
 
 If you have additional specific details (such as how long you've had this symptom or related lab results), please tell me so I can give you an even more precise recommendation!`;

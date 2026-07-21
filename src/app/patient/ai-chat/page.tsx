@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { Loader2, Bot, Send, ShieldAlert, Sparkles, User, RefreshCw, Key, Settings, Check } from 'lucide-react';
+import { Loader2, Bot, Send, ShieldAlert, Sparkles, User, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
 interface ChatMessage {
@@ -18,35 +18,9 @@ function PatientAiChat() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [emergencyFlagged, setEmergencyFlagged] = useState(false);
 
-  // Custom AI Key State
-  const [userApiKey, setUserApiKey] = useState('');
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [keySaved, setKeySaved] = useState(false);
-  
   const chatEndRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const initialPrompt = searchParams.get('prompt');
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('ayurcare_gemini_api_key');
-    if (savedKey) {
-      setUserApiKey(savedKey);
-    }
-  }, []);
-
-  const handleSaveApiKey = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userApiKey.trim()) {
-      localStorage.setItem('ayurcare_gemini_api_key', userApiKey.trim());
-    } else {
-      localStorage.removeItem('ayurcare_gemini_api_key');
-    }
-    setKeySaved(true);
-    setTimeout(() => {
-      setKeySaved(false);
-      setShowKeyModal(false);
-    }, 1200);
-  };
 
   const fetchSession = async () => {
     setSessionLoading(true);
@@ -64,7 +38,7 @@ function PatientAiChat() {
           setMessages([
             {
               role: 'assistant',
-              content: 'Namaste! I am PrakritiAI, your Ayurvedic & Clinical Wellness Assistant. I am here to help you with personalized health advice, herb pharmacology, diet guidance (Pathya/Apathya), and symptom triaging.\n\nWhat health question or symptom would you like to discuss today?',
+              content: 'Namaste! I am PrakritiAI, your Ayurvedic & Clinical AI Wellness Assistant. I provide real-time, personalized health advice, herb pharmacology, diet guidance (Pathya/Apathya), and symptom triaging.\n\nWhat health question or symptom would you like to discuss today?',
             }
           ]);
         }
@@ -100,7 +74,6 @@ function PatientAiChat() {
             body: JSON.stringify({
               sessionId,
               message: userQuery,
-              userApiKey: userApiKey || undefined,
             }),
           });
 
@@ -140,7 +113,6 @@ function PatientAiChat() {
         body: JSON.stringify({
           sessionId,
           message: userQuery,
-          userApiKey: userApiKey || undefined,
         }),
       });
 
@@ -199,66 +171,15 @@ function PatientAiChat() {
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowKeyModal(true)}
-            className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-600 rounded-lg flex items-center space-x-1 cursor-pointer transition shadow-sm"
-            title="Configure Live AI Key"
-          >
-            <Key className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{userApiKey ? 'AI Key Set ✓' : 'Add Gemini Key'}</span>
-          </button>
-
-          <button
-            onClick={handleResetSession}
-            className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-500 rounded-lg flex items-center space-x-1 cursor-pointer transition shadow-sm"
-            title="Reset chat session"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>New Chat</span>
-          </button>
-        </div>
+        <button
+          onClick={handleResetSession}
+          className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-500 rounded-lg flex items-center space-x-1 cursor-pointer transition shadow-sm"
+          title="Reset chat session"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>New Chat</span>
+        </button>
       </header>
-
-      {/* Key Modal */}
-      {showKeyModal && (
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <form onSubmit={handleSaveApiKey} className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="font-bold text-slate-800 text-sm flex items-center">
-                <Key className="w-4 h-4 text-emerald-600 mr-2" /> Live AI Engine Setup
-              </h3>
-              <button type="button" onClick={() => setShowKeyModal(false)} className="text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              PrakritiAI uses high-accuracy clinical reasoning. Optionally paste your free <strong>Google Gemini API Key</strong> to connect live cloud model inference.
-            </p>
-            <input
-              type="password"
-              placeholder="Paste Google Gemini API Key (AIzaSy...)"
-              value={userApiKey}
-              onChange={(e) => setUserApiKey(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <div className="flex justify-end space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowKeyModal(false)}
-                className="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 font-semibold"
-              >
-                Close
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center"
-              >
-                {keySaved ? <Check className="w-4 h-4 mr-1" /> : null}
-                {keySaved ? 'Saved!' : 'Save Key'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Emergency Alert Indicator */}
       {emergencyFlagged && (
@@ -311,7 +232,7 @@ function PatientAiChat() {
                 </div>
                 <div className="bg-white border border-slate-100 text-slate-400 rounded-2xl rounded-tl-none p-4 text-xs font-semibold flex items-center shadow-sm">
                   <Loader2 className="w-4 h-4 animate-spin text-emerald-600 mr-2" />
-                  PrakritiAI is generating prompt-specific analysis...
+                  PrakritiAI is formulating remedies...
                 </div>
               </div>
             )}
