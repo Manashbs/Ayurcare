@@ -55,7 +55,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: any) => {
       // 1. Update basic user fields
       const userUpdate: any = {};
       if (name) userUpdate.name = name;
