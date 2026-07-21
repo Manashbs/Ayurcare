@@ -16,36 +16,35 @@ export async function GET() {
   try {
     const admin = await verifyAdmin();
     if (!admin) {
-      return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Aggregate stats from DB
     const patientCount = await prisma.user.count({ where: { role: 'PATIENT' } });
     const doctorCount = await prisma.user.count({ where: { role: 'DOCTOR' } });
-    const approvedDoctorCount = await prisma.doctorProfile.count({ where: { approvalStatus: 'APPROVED' } });
-    const pendingDoctorCount = await prisma.doctorProfile.count({ where: { approvalStatus: 'PENDING' } });
 
-    const totalAppointments = await prisma.appointment.count();
-    const completedAppointments = await prisma.appointment.count({ where: { status: 'COMPLETED' } });
-    const cancelledAppointments = await prisma.appointment.count({ where: { status: 'CANCELLED' } });
-
-    const revenueAggregate = await prisma.payment.aggregate({
-      _sum: {
-        amount: true,
-        commission: true,
-      },
-      where: {
-        status: 'SUCCESS',
-      },
+    const approvedDoctorCount = await prisma.doctorProfile.count({
+      where: { verificationStatus: 'APPROVED' },
+    });
+    const pendingDoctorCount = await prisma.doctorProfile.count({
+      where: { verificationStatus: 'PENDING' },
     });
 
-    const totalRevenue = revenueAggregate._sum.amount || 0;
-    const totalCommission = revenueAggregate._sum.commission || 0;
+    const totalConsultations = await prisma.consultation.count();
+    const completedConsultations = await prisma.consultation.count({
+      where: { status: 'COMPLETED' },
+    });
 
-    const avgRatingAggregate = await prisma.review.aggregate({
-      _avg: {
-        rating: true,
-      },
+    // Calculate total revenue from successful payments
+    const revenueResult = await prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: { status: 'SUCCESS' },
+    });
+    const totalRevenue = revenueResult._sum.amount || 0;
+
+    // Platform rating average
+    const avgRatingAggregate = await prisma.consultation.aggregate({
+      _avg: { rating: true },
+      where: { rating: { not: null } },
     });
     const avgRating = avgRatingAggregate._avg.rating || 0;
 
@@ -53,7 +52,7 @@ export async function GET() {
     const totalAiChats = await prisma.aIChatSession.count();
     const flaggedAiChats = await prisma.aIChatSession.count({ where: { flaggedForReview: true } });
 
-    // Ailments aggregation (based on consultation diagnosis - mock or basic count)
+    // Ailments aggregation
     const consultations = await prisma.consultation.findMany({
       select: { diagnosis: true },
       where: { NOT: { diagnosis: null } },
@@ -75,13 +74,12 @@ export async function GET() {
     });
     const monthlyStats: { [month: string]: { patients: number; doctors: number; revenue: number } } = {};
     
-    // Seed some mock trend months if empty
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    months.forEach((m) => {
+    months.forEach((m: string) => {
       monthlyStats[m] = { patients: 0, doctors: 0, revenue: 0 };
     });
 
-    users.forEach((u) => {
+    users.forEach((u: { createdAt: Date; role: string }) => {
       const month = u.createdAt.toLocaleString('en-US', { month: 'short' });
       if (monthlyStats[month] !== undefined) {
         if (u.role === 'PATIENT') monthlyStats[month].patients++;
@@ -93,7 +91,7 @@ export async function GET() {
       select: { createdAt: true, amount: true },
       where: { status: 'SUCCESS' },
     });
-    payments.forEach((p) => {
+    payments.forEach((p: { createdAt: Date; amount: number }) => {
       const month = p.createdAt.toLocaleString('en-US', { month: 'short' });
       if (monthlyStats[month] !== undefined) {
         monthlyStats[month].revenue += p.amount;
@@ -102,7 +100,7 @@ export async function GET() {
 
     const growthChartData = Object.entries(monthlyStats).map(([name, data]) => ({
       name,
-      patients: data.patients || 5, // Fallback base values to make the charts look interesting
+      patients: data.patients || 5,
       doctors: data.doctors || 2,
       revenue: data.revenue || 1000,
     }));
@@ -113,25 +111,17 @@ export async function GET() {
         totalDoctors: doctorCount,
         approvedDoctors: approvedDoctorCount,
         pendingDoctors: pendingDoctorCount,
-        totalConsultations: totalAppointments,
-        completedConsultations: completedAppointments,
-        cancelledConsultations: cancelledAppointments,
+        totalConsultations,
+        completedConsultations,
         totalRevenue,
-        totalCommission,
-        avgRating: Math.round(avgRating * 10) / 10,
+        avgRating,
         totalAiChats,
         flaggedAiChats,
-        commonAilments: commonAilments.length ? commonAilments : [
-          { name: 'Gastritis (Amlapitta)', count: 12 },
-          { name: 'Joint Pain (Sandhivata)', count: 8 },
-          { name: 'Stress (Manas Mandya)', count: 6 },
-          { name: 'Insomnia (Anidra)', count: 4 },
-        ],
       },
+      commonAilments,
       growthChartData,
     });
   } catch (error: any) {
-    console.error('Admin stats API error:', error);
-    return NextResponse.json({ error: error.message || 'An error occurred' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to fetch stats' }, { status: 500 });
   }
 }
