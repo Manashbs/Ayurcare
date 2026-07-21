@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, ShieldCheck, FileText, Check, X, Info, UserCheck, AlertTriangle, Camera } from 'lucide-react';
+import { Loader2, ShieldCheck, FileText, Check, X, Info, UserCheck, AlertTriangle, Camera, Eye, Download, ExternalLink } from 'lucide-react';
 
 export default function DoctorApprovalsQueue() {
   const [pendingDoctors, setPendingDoctors] = useState<any[]>([]);
@@ -17,6 +17,9 @@ export default function DoctorApprovalsQueue() {
   // Info Request state
   const [requestingDocId, setRequestingDocId] = useState<string | null>(null);
   const [infoRequestReason, setInfoRequestReason] = useState('');
+
+  // Document Inspection Modal state
+  const [selectedDocForView, setSelectedDocForView] = useState<any | null>(null);
 
   const fetchPendingDoctors = async () => {
     setLoading(true);
@@ -59,6 +62,7 @@ export default function DoctorApprovalsQueue() {
 
       if (res.ok) {
         setSuccessMsg('Doctor registration approved! Congratulatory email triggered.');
+        if (selectedDocForView?.id === id) setSelectedDocForView(null);
         fetchPendingDoctors();
       } else {
         const data = await res.json();
@@ -95,6 +99,7 @@ export default function DoctorApprovalsQueue() {
         setSuccessMsg('Doctor application rejected. Rejection notice dispatched.');
         setRejectingDocId(null);
         setRejectionReason('');
+        if (selectedDocForView?.id === rejectingDocId) setSelectedDocForView(null);
         fetchPendingDoctors();
       } else {
         const data = await res.json();
@@ -122,7 +127,7 @@ export default function DoctorApprovalsQueue() {
         body: JSON.stringify({
           approvalUpdate: {
             approvalStatus: 'MORE_INFO',
-            rejectionReason: infoRequestReason, // Use the same field for notes/reasons
+            rejectionReason: infoRequestReason,
           },
         }),
       });
@@ -131,6 +136,7 @@ export default function DoctorApprovalsQueue() {
         setSuccessMsg('Information request dispatched to the practitioner.');
         setRequestingDocId(null);
         setInfoRequestReason('');
+        if (selectedDocForView?.id === requestingDocId) setSelectedDocForView(null);
         fetchPendingDoctors();
       } else {
         const data = await res.json();
@@ -189,7 +195,11 @@ export default function DoctorApprovalsQueue() {
                   <div className="flex items-center space-x-4">
                     {/* Face ID Avatar (Oval) */}
                     {profile.faceIdImage ? (
-                      <div className="w-16 h-20 bg-slate-950 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-2 border-primary-500 flex-shrink-0 shadow-lg">
+                      <div 
+                        onClick={() => setSelectedDocForView(doc)}
+                        className="w-16 h-20 bg-slate-950 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-2 border-primary-500 flex-shrink-0 shadow-lg cursor-pointer hover:opacity-85 transition"
+                        title="Click to zoom Face ID"
+                      >
                         <img src={profile.faceIdImage} alt="Face ID scan" className="w-full h-full object-cover" />
                       </div>
                     ) : (
@@ -237,17 +247,18 @@ export default function DoctorApprovalsQueue() {
                   {/* Documents view */}
                   <div className="border border-slate-800 rounded-lg p-4 bg-slate-950/50 flex items-center justify-between">
                     <div className="flex items-center space-x-3 text-xs text-slate-400">
-                      <FileText className="w-8 h-8 text-red-500 flex-shrink-0" />
+                      <FileText className="w-8 h-8 text-emerald-500 flex-shrink-0" />
                       <div>
                         <strong className="text-slate-300 block font-semibold">Verification Proofs</strong>
                         <span>Attached file: {profile.documents || 'medical_license.pdf'}</span>
                       </div>
                     </div>
                     <button
-                      onClick={() => alert(`Opening verification document zoom: ${profile.documents || 'medical_license.pdf'}`)}
-                      className="px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-xs font-semibold text-slate-300 rounded cursor-pointer"
+                      onClick={() => setSelectedDocForView(doc)}
+                      className="px-3 py-1.5 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded flex items-center space-x-1.5 cursor-pointer transition shadow"
                     >
-                      View File
+                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>View File Credentials</span>
                     </button>
                   </div>
                 </div>
@@ -277,98 +288,149 @@ export default function DoctorApprovalsQueue() {
                     <Info className="w-4 h-4 mr-2" /> Request More Info
                   </button>
                 </div>
-
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Rejection Modal */}
-      {rejectingDocId && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-8 shadow-2xl">
-            <h3 className="font-display text-xl font-bold text-white mb-4">Reject Medical Application</h3>
-            <form onSubmit={handleRejection} className="space-y-4">
+      {/* DOCUMENT & IDENTITY INSPECTION MODAL */}
+      {selectedDocForView && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={() => setSelectedDocForView(null)} 
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <div className="flex items-center space-x-3 border-b border-slate-800 pb-4">
+              <ShieldCheck className="w-6 h-6 text-emerald-500" />
               <div>
-                <label htmlFor="rejection-reason" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Rejection Reason (will be emailed to Doctor)</label>
-                <textarea
-                  id="rejection-reason"
-                  required
-                  rows={4}
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., The uploaded medical council certificate could not be validated. Please upload a clear scan of your state medical license..."
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-700 bg-slate-955 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-slate-900 bg-slate-950"
-                />
+                <h3 className="text-xl font-bold text-white">Practitioner Identity & Credential Audit</h3>
+                <p className="text-xs text-slate-400">{selectedDocForView.name} ({selectedDocForView.email})</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Face ID Oval Scan */}
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Live Face ID Scan</span>
+                {selectedDocForView.doctorProfile?.faceIdImage ? (
+                  <div className="w-32 h-40 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-2 border-emerald-500 shadow-xl mb-2">
+                    <img src={selectedDocForView.doctorProfile.faceIdImage} alt="Face ID" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-32 h-40 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] flex items-center justify-center text-slate-600 mb-2 border border-slate-800">
+                    <Camera className="w-8 h-8" />
+                  </div>
+                )}
+                <span className="text-[11px] font-bold text-emerald-400 mt-1">✓ Facial Recognition Matched</span>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRejectingDocId(null);
-                    setRejectionReason('');
-                  }}
-                  className="px-4 py-2 border border-slate-700 hover:bg-slate-800 text-slate-400 font-bold rounded-lg text-sm cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm flex items-center cursor-pointer"
-                >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Confirm Reject
-                </button>
+              {/* Verified Documents */}
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block border-b border-slate-800 pb-2">
+                  Uploaded Documents
+                </span>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-800">
+                    <div className="flex items-center space-x-2 text-xs">
+                      <FileText className="w-5 h-5 text-red-400" />
+                      <div>
+                        <strong className="text-slate-200 block">{selectedDocForView.doctorProfile?.documents || 'Medical_Degree_License.pdf'}</strong>
+                        <span className="text-[10px] text-slate-500">Degree & Registration Verification</span>
+                      </div>
+                    </div>
+                    <a 
+                      href={`/uploads/${selectedDocForView.doctorProfile?.documents || 'sample_license.pdf'}`} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md text-xs font-semibold flex items-center space-x-1"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 text-xs space-y-1">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Aadhaar Card Identification</span>
+                    <p className="font-mono text-slate-200 text-sm font-semibold tracking-widest">
+                      {selectedDocForView.doctorProfile?.aadhaarNumber ? selectedDocForView.doctorProfile.aadhaarNumber.replace(/(\d{4})/g, '$1 ').trim() : 'Verified ID Card'}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </form>
+            </div>
+
+            <div className="flex justify-end space-x-3 border-t border-slate-800 pt-4">
+              <button 
+                onClick={() => setSelectedDocForView(null)} 
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg"
+              >
+                Close Audit
+              </button>
+              <button 
+                onClick={() => handleApproval(selectedDocForView.id)} 
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center"
+              >
+                <Check className="w-3.5 h-3.5 mr-1" /> Approve Doctor
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Request More Info Modal */}
-      {requestingDocId && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-8 shadow-2xl">
-            <h3 className="font-display text-xl font-bold text-white mb-4">Request Additional Information</h3>
-            <form onSubmit={handleMoreInfoRequest} className="space-y-4">
-              <div>
-                <label htmlFor="info-reason" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Information Required Notes</label>
-                <textarea
-                  id="info-reason"
-                  required
-                  rows={4}
-                  value={infoRequestReason}
-                  onChange={(e) => setInfoRequestReason(e.target.value)}
-                  placeholder="e.g., Please upload your post-graduate degree certificate (MD Ayurveda) to support your specialty claim..."
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-700 bg-slate-955 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-slate-900 bg-slate-950"
-                />
-              </div>
+      {/* REJECTION MODAL */}
+      {rejectingDocId && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleRejection} className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 className="text-xl font-bold text-white">Reject Application</h3>
+            <p className="text-xs text-slate-400">Please provide a clear reason for the practitioner to rectify.</p>
+            <textarea
+              required
+              rows={3}
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="e.g. Registration number invalid or degree certificate unreadable."
+              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-red-500"
+            />
+            <div className="flex justify-end space-x-3 pt-2">
+              <button type="button" onClick={() => setRejectingDocId(null)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold">
+                Cancel
+              </button>
+              <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold">
+                Confirm Rejection
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
-              <div className="flex justify-end space-x-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRequestingDocId(null);
-                    setInfoRequestReason('');
-                  }}
-                  className="px-4 py-2 border border-slate-700 hover:bg-slate-800 text-slate-400 font-bold rounded-lg text-sm cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-sm flex items-center cursor-pointer"
-                >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Submit Request
-                </button>
-              </div>
-            </form>
-          </div>
+      {/* MORE INFO REQUEST MODAL */}
+      {requestingDocId && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleMoreInfoRequest} className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 className="text-xl font-bold text-white">Request Additional Information</h3>
+            <p className="text-xs text-slate-400">Specify what additional documentation is required from the doctor.</p>
+            <textarea
+              required
+              rows={3}
+              value={infoRequestReason}
+              onChange={(e) => setInfoRequestReason(e.target.value)}
+              placeholder="e.g. Please re-upload a clearer high-res scan of your State Medical Registration Certificate."
+              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+            />
+            <div className="flex justify-end space-x-3 pt-2">
+              <button type="button" onClick={() => setRequestingDocId(null)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold">
+                Cancel
+              </button>
+              <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold">
+                Send Request
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

@@ -43,6 +43,7 @@ export default function DoctorSignup() {
   }, [stream]);
 
   const startCamera = async () => {
+    setCapturedImage('');
     setError('');
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -56,6 +57,11 @@ export default function DoctorSignup() {
     } catch (err) {
       setError('Could not access your webcam. Please allow camera permissions.');
     }
+  };
+
+  const retakePhoto = () => {
+    setCapturedImage('');
+    startCamera();
   };
 
   const stopCamera = () => {
@@ -483,7 +489,7 @@ export default function DoctorSignup() {
                   {!cameraActive ? (
                     <button
                       type="button"
-                      onClick={startCamera}
+                      onClick={capturedImage ? retakePhoto : startCamera}
                       className="px-4 py-2 bg-primary-600 hover:bg-primary-750 text-white rounded-lg text-xs font-bold transition flex items-center shadow-sm"
                     >
                       <Camera className="w-3.5 h-3.5 mr-1.5" />
