@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, Stethoscope, AlertCircle, UploadCloud, Camera, Check } from 'lucide-react';
+import { Loader2, Stethoscope, AlertCircle, UploadCloud, Camera, Check, User } from 'lucide-react';
 
 export default function DoctorSignup() {
   const router = useRouter();
@@ -76,13 +76,22 @@ export default function DoctorSignup() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
+      
+      const width = video.videoWidth || 400;
+      const height = video.videoHeight || 400;
+
+      canvas.width = width;
+      canvas.height = height;
+
       const context = canvas.getContext('2d');
       if (context) {
-        canvas.width = 300;
-        canvas.height = 300;
-        context.drawImage(video, 0, 0, 300, 300);
-        const base64 = canvas.toDataURL('image/jpeg', 0.85);
-        setCapturedImage(base64);
+        context.translate(width, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, width, height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.9);
+        if (base64 && base64.length > 500) {
+          setCapturedImage(base64);
+        }
         stopCamera();
       }
     }
@@ -471,36 +480,60 @@ export default function DoctorSignup() {
               <label className="block text-[11px] font-bold text-slate-700 uppercase mb-2">Face ID Capture (Oval Camera Scan)</label>
               
               <div className="flex flex-col items-center space-y-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
-                <div className="relative w-40 h-52 bg-slate-950 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-4 border-dashed border-primary-500 shadow-inner flex items-center justify-center">
+                <div className="relative w-44 h-56 bg-slate-900 rounded-[50%_/_60%_60%_40%_40%] overflow-hidden border-4 border-emerald-500 shadow-xl flex items-center justify-center">
                   {capturedImage ? (
                     <img src={capturedImage} alt="Captured Face ID" className="w-full h-full object-cover animate-fadeIn" />
                   ) : cameraActive ? (
-                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform -scale-x-100" />
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform -scale-x-100" />
                   ) : (
                     <div className="text-center p-4 text-slate-400">
-                      <Camera className="w-8 h-8 mx-auto mb-2 opacity-55" />
-                      <span className="text-[10px] font-semibold">Camera Offline</span>
+                      <User className="w-10 h-10 mx-auto mb-2 text-slate-500" />
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">No Photo Captured</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 border-2 border-primary-600/20 rounded-[50%] pointer-events-none"></div>
+                  <div className="absolute inset-0 border-2 border-emerald-400/30 rounded-[50%] pointer-events-none"></div>
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap items-center justify-center gap-2">
                   {!cameraActive ? (
-                    <button
-                      type="button"
-                      onClick={capturedImage ? retakePhoto : startCamera}
-                      className="px-4 py-2 bg-primary-600 hover:bg-primary-750 text-white rounded-lg text-xs font-bold transition flex items-center shadow-sm"
-                    >
-                      <Camera className="w-3.5 h-3.5 mr-1.5" />
-                      {capturedImage ? 'Retake Photo' : 'Start Camera'}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={capturedImage ? retakePhoto : startCamera}
+                        className="px-4 py-2 bg-primary-600 hover:bg-primary-750 text-white rounded-lg text-xs font-bold transition flex items-center shadow-sm cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5 mr-1.5" />
+                        {capturedImage ? 'Retake Photo' : 'Start Camera'}
+                      </button>
+
+                      <label className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition flex items-center shadow-sm cursor-pointer">
+                        <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-gold-400" />
+                        <span>Upload Face Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                if (event.target?.result) {
+                                  setCapturedImage(event.target.result as string);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </>
                   ) : (
                     <>
                       <button
                         type="button"
                         onClick={capturePhoto}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center cursor-pointer"
                       >
                         <Check className="w-3.5 h-3.5 mr-1.5" />
                         Capture Face
@@ -508,7 +541,7 @@ export default function DoctorSignup() {
                       <button
                         type="button"
                         onClick={stopCamera}
-                        className="px-4 py-2 bg-rose-600 hover:bg-rose-750 text-white rounded-lg text-xs font-bold transition shadow-sm"
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-750 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
                       >
                         Cancel
                       </button>
