@@ -69,7 +69,7 @@ export default function YogaGuide() {
         {/* Filters */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4">
           {/* Difficulty Tiers */}
-          <div className="flex items-center space-x-2 text-xs font-bold text-slate-655 text-slate-600">
+          <div className="flex items-center space-x-2 text-xs font-bold text-slate-600">
             <span className="text-slate-400">Difficulty:</span>
             {(['All', 'Beginner', 'Intermediate', 'Advanced'] as const).map((lvl) => (
               <button
@@ -88,7 +88,7 @@ export default function YogaGuide() {
           </div>
 
           {/* Dosha Filter */}
-          <div className="flex items-center space-x-2 text-xs font-bold text-slate-655 text-slate-600">
+          <div className="flex items-center space-x-2 text-xs font-bold text-slate-600">
             <span className="text-slate-400">Dosha Target:</span>
             {(['All', 'Vata', 'Pitta', 'Kapha'] as const).map((dosha) => (
               <button
@@ -109,7 +109,7 @@ export default function YogaGuide() {
       </div>
 
       {/* active filters status */}
-      <div className="text-xs text-slate-500 font-bold flex justify-between items-center px-1">
+      <div className="text-xs text-slate-450 font-bold flex justify-between items-center px-1">
         <span>Found {filteredAsanas.length} matching yoga postures</span>
         <span className="text-[10px] text-slate-400 italic">Showing {Math.min(visibleCount, filteredAsanas.length)} of {filteredAsanas.length}</span>
       </div>
@@ -150,7 +150,7 @@ export default function YogaGuide() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 text-[9px] font-bold text-slate-505 text-slate-500 mb-3">
+                <div className="flex items-center space-x-2 text-[9px] font-bold text-slate-500 mb-3">
                   <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">{asana.level}</span>
                   <span>•</span>
                   <span className="text-primary-700">{asana.type}</span>
@@ -163,7 +163,7 @@ export default function YogaGuide() {
 
               <button
                 onClick={() => setActiveAsana(asana)}
-                className="w-full py-2 bg-slate-50 border border-slate-150 hover:bg-primary-600 hover:text-white hover:border-transparent text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer"
+                className="w-full py-2 bg-slate-50 border border-slate-150 hover:bg-primary-605 hover:bg-primary-600 hover:text-white hover:border-transparent text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer"
               >
                 <Eye className="w-3.5 h-3.5 mr-1.5" /> View Posture Steps
               </button>
@@ -197,9 +197,9 @@ export default function YogaGuide() {
             </button>
 
             <div>
-              <span className="text-[10px] text-primary-655 text-primary-600 font-bold uppercase tracking-wider block">Yogic Asana Therapy</span>
+              <span className="text-[10px] text-primary-600 font-bold uppercase tracking-wider block">Yogic Asana Therapy</span>
               <h2 className="font-display font-extrabold text-xl text-slate-800 mt-1">{activeAsana.name}</h2>
-              <span className="text-xs text-slate-400 font-medium mt-0.5 block">{activeAsana.sanskrit}</span>
+              <span className="text-xs text-slate-450 text-slate-400 font-medium mt-0.5 block">{activeAsana.sanskrit}</span>
             </div>
 
             <div className="flex space-x-3 text-[10px] font-bold text-slate-500 border-y py-2 border-slate-100">
@@ -209,8 +209,8 @@ export default function YogaGuide() {
 
             {/* Instruction Steps */}
             <div className="space-y-3">
-              <h4 className="text-xs font-extrabold text-slate-855 text-slate-800 uppercase tracking-wider">How to Practice (Step-by-Step)</h4>
-              <ol className="list-decimal pl-4 text-xs text-slate-655 text-slate-605 text-slate-600 space-y-2 leading-relaxed">
+              <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">How to Practice (Step-by-Step)</h4>
+              <ol className="list-decimal pl-4 text-xs text-slate-600 space-y-2 leading-relaxed">
                 {activeAsana.steps.map((step, idx) => (
                   <li key={idx} className="pl-1">{step}</li>
                 ))}
@@ -220,7 +220,7 @@ export default function YogaGuide() {
             {/* Breathing pattern */}
             <div className="p-4 bg-primary-50/20 border-l-4 border-primary-500 rounded-r-xl text-xs space-y-1">
               <strong className="text-primary-750 block font-bold">Breathing Coordination:</strong>
-              <p className="text-slate-600">{activeAsana.breathing}</p>
+              <p className="text-slate-650">{activeAsana.breathing}</p>
             </div>
 
             {/* Health Benefits */}
@@ -237,7 +237,7 @@ export default function YogaGuide() {
             </div>
 
             <div className="text-[10px] text-slate-400 flex items-center justify-center p-2 bg-slate-50 rounded-lg">
-              <HelpCircle className="w-4 h-4 mr-1 text-primary-650 text-primary-600 flex-shrink-0" />
+              <HelpCircle className="w-4 h-4 mr-1 text-primary-600 flex-shrink-0" />
               <span>Ayurvedic Tip: Practice on an empty stomach. Focus on internal sensations rather than flexibility.</span>
             </div>
 

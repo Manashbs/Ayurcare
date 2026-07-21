@@ -278,7 +278,7 @@ export default function MeditationSpace() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto" id="meditation-space-page">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 to-indigo-700 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-900 to-indigo-755 to-indigo-700 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute -right-16 -top-16 w-48 h-48 bg-indigo-500 rounded-full opacity-30 filter blur-2xl"></div>
         <div className="flex items-center space-x-4 relative z-10">
           <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md">
@@ -300,7 +300,7 @@ export default function MeditationSpace() {
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Difficulty Tier</span>
             
             {/* Level Tabs */}
-            <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200/50 text-xs font-bold text-slate-600">
+            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 text-xs font-bold text-slate-600">
               {(['Beginner', 'Medium', 'Advanced'] as const).map((lvl) => (
                 <button
                   key={lvl}
@@ -309,10 +309,10 @@ export default function MeditationSpace() {
                     const matched = MEDITATION_TRACKS.find((t) => t.level === lvl);
                     if (matched) setActiveTrack(matched);
                   }}
-                  className={`py-2 rounded-lg transition-premium cursor-pointer text-center ${
+                  className={`py-2 rounded-lg transition cursor-pointer ${
                     selectedLevel === lvl
-                      ? 'bg-white text-indigo-750 shadow-sm font-extrabold scale-100'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-indigo-650 bg-indigo-600 text-white shadow-sm'
+                      : 'hover:bg-slate-100 text-slate-700'
                   }`}
                 >
                   {lvl}
@@ -342,7 +342,7 @@ export default function MeditationSpace() {
                     </span>
                   </div>
                   <p className="text-slate-500 mt-1 line-clamp-2 leading-relaxed">{track.desc}</p>
-                  <span className="text-[9px] text-indigo-600 font-bold block mt-2">{track.durationMin} Minutes Sessions</span>
+                  <span className="text-[9px] text-indigo-650 font-bold block mt-2">{track.durationMin} Minutes Sessions</span>
                 </div>
               </div>
             ))}
@@ -383,7 +383,7 @@ export default function MeditationSpace() {
 
           {/* Guide Message Panel */}
           <div className="w-full text-center max-w-md bg-slate-50 border border-slate-100 rounded-2xl p-4 min-h-[85px] flex items-center justify-center">
-            <p className="text-xs text-slate-650 text-slate-600 leading-relaxed font-semibold italic animate-fadeIn">
+            <p className="text-xs text-slate-600 leading-relaxed font-semibold italic animate-fadeIn">
               {isRunning
                 ? activeTrack.instructions[instructionIdx] || 'Maintain quiet silence. Remain centered.'
                 : 'Tap Play below to begin your quiet session. Settle into a comfortable posture.'}

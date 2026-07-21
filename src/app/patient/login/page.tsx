@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, Loader2, Sparkles, Heart, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -239,8 +239,7 @@ function PatientLoginContent() {
   };
 
   return (
-    <main className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-cream text-slate-850 font-sans" id="patient-login-page">
-      
+    <main className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-cream" id="patient-login-page">
       {/* Visual Side */}
       <section className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-primary-800 to-primary-700 text-white relative overflow-hidden">
         {/* Decorative elements */}
@@ -248,66 +247,60 @@ function PatientLoginContent() {
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gold-600 rounded-full opacity-20 filter blur-3xl"></div>
         
         {/* Brand Header */}
-        <div className="flex items-center space-x-2.5 z-10 group">
-          <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center font-bold text-white shadow-sm">
-            <LeafIcon className="w-4.5 h-4.5 text-gold-100" />
+        <div className="flex items-center space-x-2 z-10">
+          <div className="w-10 h-10 rounded-full bg-gold-600 flex items-center justify-center font-bold text-lg text-primary-800">
+            A
           </div>
-          <span className="font-display font-extrabold text-xl tracking-tight">Ayur<span className="text-gold-100 font-medium">Care</span></span>
+          <span className="font-display font-bold text-2xl tracking-wide">AyurCare</span>
         </div>
 
         {/* Brand Quote */}
-        <div className="my-auto z-10 max-w-md space-y-8">
-          <div className="inline-flex items-center space-x-2 bg-white/10 border border-white/10 text-gold-100 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-gold-100 animate-pulse" />
+        <div className="my-auto z-10 max-w-md">
+          <div className="flex items-center space-x-2 text-gold-100 font-semibold mb-3">
+            <Sparkles className="w-5 h-5 text-gold-600" />
             <span>Ayurvedic Healing Portal</span>
           </div>
-          <div className="space-y-4">
-            <h1 className="font-display text-4xl lg:text-5xl font-black leading-tight tracking-tight">
-              Your Journey to True Balance Begins Here.
-            </h1>
-            <p className="text-primary-100 text-base leading-relaxed">
-              Consult verified physicians, track your Prakriti (Dosha), and manage prescriptions online in a secure, startup-grade digital clinic.
-            </p>
-          </div>
-          <div className="pt-4 flex items-center space-x-6 text-xs text-primary-100/80 font-semibold border-t border-white/10">
-            <span className="flex items-center"><ShieldCheck className="w-4.5 h-4.5 mr-2 text-gold-100" /> HIPAA Compliant</span>
-            <span className="flex items-center"><HelpCircle className="w-4.5 h-4.5 mr-2 text-gold-100" /> 24/7 AI Triage</span>
-          </div>
+          <h1 className="font-display text-4xl lg:text-5xl font-bold leading-tight mb-6">
+            Your Journey to True Balance Begins Here.
+          </h1>
+          <p className="text-primary-100 text-lg">
+            Consult verified physicians, track your Prakriti (Dosha), and manage prescriptions online in a secure environment.
+          </p>
         </div>
 
         {/* Footer info */}
-        <div className="text-[11px] font-semibold text-primary-100/50 uppercase tracking-wider z-10">
+        <div className="text-sm text-primary-100 opacity-70 z-10">
           &copy; 2026 AyurCare Health. All rights reserved.
         </div>
       </section>
 
       {/* Form Side */}
       <section className="flex items-center justify-center p-8 lg:p-16">
-        <div className="w-full max-w-md bg-white border border-zinc-200/60 rounded-2xl shadow-xl overflow-hidden relative p-8 lg:p-10 hover-glow transition-premium">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8 lg:p-10 relative overflow-hidden">
           
           {/* Top border indicator */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary-700 via-gold-600 to-primary-700"></div>
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary-700 via-gold-600 to-primary-700"></div>
 
           {/* Heading */}
-          <div className="mb-8 space-y-1">
-            <h2 className="font-display text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {forgotPasswordMode ? 'Reset Credentials' : 'Welcome Back'}
+          <div className="mb-8">
+            <h2 className="font-display text-2xl lg:text-3xl font-bold text-slate-800">
+              {forgotPasswordMode ? 'Reset Password' : 'Patient Portal Login'}
             </h2>
-            <p className="text-slate-400 text-xs font-medium">
+            <p className="text-slate-500 mt-2">
               {forgotPasswordMode 
-                ? 'Follow the steps to securely recover your account access.' 
-                : 'Access your health records and consult vetted specialists.'}
+                ? 'Follow the steps to securely reset your credentials.' 
+                : 'Welcome back. Access your health records and doctors.'}
             </p>
           </div>
 
           {/* Alert messages */}
           {error && (
-            <div className="bg-rose-50 text-rose-700 p-3.5 rounded-xl border border-rose-100 text-xs font-bold mb-6 animate-pulse">
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg border border-red-200 text-sm mb-6 font-medium animate-pulse">
               {error}
             </div>
           )}
           {resetSuccess && (
-            <div className="bg-emerald-50 text-emerald-850 p-3.5 rounded-xl border border-emerald-100 text-xs font-bold mb-6">
+            <div className="bg-green-50 text-green-700 p-3 rounded-lg border border-green-200 text-sm mb-6 font-medium">
               {resetSuccess}
             </div>
           )}
@@ -316,22 +309,22 @@ function PatientLoginContent() {
           {forgotPasswordMode ? (
             <form onSubmit={handleForgotPasswordSubmit} className="space-y-5">
               {resetStep === 1 ? (
-                <div className="space-y-1.5">
-                  <label htmlFor="reset-email" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+                <div>
+                  <label htmlFor="reset-email" className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
                   <input
                     id="reset-email"
                     type="email"
                     required
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    placeholder="Enter registered email"
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-600/35 focus:border-primary-600 text-slate-800 placeholder-slate-400 text-sm transition"
+                    placeholder="Enter your registered email"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 placeholder-slate-400"
                   />
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor="reset-code" className="block text-xs font-bold text-slate-500 uppercase tracking-wider text-center">6-Digit OTP Code</label>
+                  <div>
+                    <label htmlFor="reset-code" className="block text-sm font-semibold text-slate-700 mb-2">6-Digit OTP Code</label>
                     <input
                       id="reset-code"
                       type="text"
@@ -339,20 +332,20 @@ function PatientLoginContent() {
                       maxLength={6}
                       value={resetCode}
                       onChange={(e) => setResetCode(e.target.value)}
-                      placeholder="• • • • • •"
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-600/35 focus:border-primary-600 text-slate-800 tracking-widest text-center text-lg font-bold placeholder-slate-350 transition"
+                      placeholder="Enter 6-digit code"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 tracking-widest text-center text-lg font-bold placeholder-slate-400"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label htmlFor="new-password" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">New Password</label>
+                  <div>
+                    <label htmlFor="new-password" className="block text-sm font-semibold text-slate-700 mb-2">New Secure Password</label>
                     <input
                       id="new-password"
                       type="password"
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Minimum 8 characters"
-                      className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-600/35 focus:border-primary-600 text-slate-800 placeholder-slate-400 text-sm transition"
+                      placeholder="Minimum 8 characters (1 number, 1 symbol)"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 placeholder-slate-400"
                     />
                   </div>
                 </div>
@@ -361,9 +354,9 @@ function PatientLoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md shadow-primary-600/10 text-xs"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
                 {resetStep === 1 ? 'Send Verification OTP' : 'Reset My Password'}
               </button>
 
@@ -374,15 +367,15 @@ function PatientLoginContent() {
                   setResetStep(1);
                   setError('');
                 }}
-                className="w-full text-center text-xs font-bold text-primary-700 hover:text-primary-800 cursor-pointer transition"
+                className="w-full text-center text-sm font-semibold text-primary-600 hover:text-primary-700 cursor-pointer transition"
               >
                 Back to Login
               </button>
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label htmlFor="email-field" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+              <div>
+                <label htmlFor="email-field" className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
                 <input
                   id="email-field"
                   type="email"
@@ -390,17 +383,17 @@ function PatientLoginContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="patient@email.com"
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-600/35 focus:border-primary-600 text-slate-805 placeholder-slate-400 text-sm transition"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 placeholder-slate-400"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="password-field" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label htmlFor="password-field" className="text-sm font-semibold text-slate-700">Password</label>
                   <button
                     type="button"
                     onClick={() => setForgotPasswordMode(true)}
-                    className="text-xs font-bold text-primary-700 hover:text-primary-800 cursor-pointer transition"
+                    className="text-sm font-semibold text-primary-600 hover:text-primary-700 cursor-pointer transition"
                   >
                     Forgot password?
                   </button>
@@ -413,14 +406,14 @@ function PatientLoginContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
-                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-1 focus:ring-primary-600/35 focus:border-primary-600 text-slate-805 placeholder-slate-400 pr-10 text-sm transition"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 placeholder-slate-400 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -431,9 +424,9 @@ function PatientLoginContent() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-primary-600 border-zinc-300 rounded focus:ring-primary-500 cursor-pointer bg-white"
+                  className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500 cursor-pointer"
                 />
-                <label htmlFor="remember-me" className="ml-2 text-xs text-slate-500 font-bold cursor-pointer selection:bg-transparent uppercase tracking-wider">
+                <label htmlFor="remember-me" className="ml-2 text-sm text-slate-600 font-medium cursor-pointer selection:bg-transparent">
                   Remember me
                 </label>
               </div>
@@ -441,26 +434,26 @@ function PatientLoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md shadow-primary-600/10 text-xs"
+                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
                 Login to Portal
               </button>
 
               {/* Google OAuth */}
               <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-zinc-200"></div>
-                <span className="flex-shrink mx-4 text-slate-450 text-[10px] font-bold uppercase tracking-wider">Or</span>
-                <div className="flex-grow border-t border-zinc-200"></div>
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink mx-4 text-slate-400 text-xs font-semibold uppercase tracking-wider">Or</span>
+                <div className="flex-grow border-t border-slate-200"></div>
               </div>
 
               {isMockGoogle ? (
                 <button
                   type="button"
                   onClick={handleGoogleMockClick}
-                  className="w-full py-3.5 border border-zinc-200 hover:bg-slate-50 text-slate-650 font-bold rounded-xl transition duration-200 flex items-center justify-center cursor-pointer shadow-sm text-xs"
+                  className="w-full py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition duration-200 flex items-center justify-center cursor-pointer shadow-sm"
                 >
-                  <svg className="w-4 h-4 mr-3" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.54 14.98 1 12 1 7.35 1 3.39 3.65 1.5 7.5l3.86 3C6.29 7.74 8.92 5.04 12 5.04z" />
                     <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.76 2.92c2.2-2.03 3.67-5.01 3.67-8.65z" />
                     <path fill="#FBBC05" d="M5.36 14.5c-.25-.74-.39-1.53-.39-2.35s.14-1.61.39-2.35L1.5 6.8C.54 8.71 0 10.84 0 13s.54 4.29 1.5 6.2l3.86-3.7z" />
@@ -472,9 +465,9 @@ function PatientLoginContent() {
                 <div id="google-signin-btn-container" className="w-full flex justify-center py-1"></div>
               )}
 
-              <div className="text-center text-xs font-bold text-slate-500 mt-6">
+              <div className="text-center text-sm font-medium text-slate-600 mt-6">
                 Don't have an account?{' '}
-                <Link href="/patient/signup" className="text-primary-700 font-extrabold hover:text-primary-800 underline transition ml-1">
+                <Link href="/patient/signup" className="text-primary-600 font-bold hover:text-primary-700 underline transition">
                   Sign up
                 </Link>
               </div>
@@ -495,22 +488,5 @@ export default function PatientLogin() {
     }>
       <PatientLoginContent />
     </Suspense>
-  );
-}
-
-function LeafIcon({ className }: { className?: string }) {
-  return (
-    <svg 
-      className={className} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2.5" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 9.8a7 7 0 0 1-9 8.2Z" />
-      <path d="M9 22v-4h4" />
-    </svg>
   );
 }
