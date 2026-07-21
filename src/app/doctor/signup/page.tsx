@@ -14,19 +14,18 @@ export default function DoctorSignup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Doctor specific fields
-  const [qualification, setQualification] = useState('BAMS');
+  const [qualification, setQualification] = useState('');
   const [regNumber, setRegNumber] = useState('');
   const [specializations, setSpecializations] = useState('');
   const [experienceYears, setExperienceYears] = useState('');
   const [feePerConsult, setFeePerConsult] = useState('500');
   const [clinicAddress, setClinicAddress] = useState('');
   const [languages, setLanguages] = useState('English, Hindi');
-  const [documents, setDocuments] = useState(''); // Mock uploaded files string
+
   const [uploadName, setUploadName] = useState('');
-  
-  // KYC Specific Fields
+  const [uploadDataUrl, setUploadDataUrl] = useState('');
   const [aadhaarNumber, setAadhaarNumber] = useState('');
+  
   const [capturedImage, setCapturedImage] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -42,20 +41,24 @@ export default function DoctorSignup() {
     };
   }, [stream]);
 
+  // Ensure webcam stream is attached as soon as video element is rendered
+  useEffect(() => {
+    if (cameraActive && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [cameraActive, stream]);
+
   const startCamera = async () => {
     setCapturedImage('');
     setError('');
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 400, height: 400, facingMode: 'user' },
+        video: { width: 640, height: 480, facingMode: 'user' },
       });
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
       setCameraActive(true);
     } catch (err) {
-      setError('Could not access your webcam. Please allow camera permissions.');
+      setError('Could not access your webcam. Please allow camera permissions or upload your photo.');
     }
   };
 
@@ -150,7 +153,7 @@ export default function DoctorSignup() {
     }
 
     if (!capturedImage) {
-      setError('Please capture your Face ID photograph');
+      setError('Please capture or upload your Face ID photograph');
       return;
     }
 
@@ -173,7 +176,7 @@ export default function DoctorSignup() {
             feePerConsult: parseFloat(feePerConsult),
             clinicAddress,
             languages,
-            documents: uploadName,
+            documents: uploadDataUrl || uploadName,
             aadhaarNumber: cleanAadhaar,
             faceIdImage: capturedImage,
           },
@@ -269,7 +272,7 @@ export default function DoctorSignup() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Dr. Vikram Malhotra"
+                  placeholder="Dr. Rajesh Sharma"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm"
                 />
               </div>
@@ -281,7 +284,7 @@ export default function DoctorSignup() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="drvikram@email.com"
+                  placeholder="dr.rajesh@example.com"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm"
                 />
               </div>
@@ -305,10 +308,9 @@ export default function DoctorSignup() {
                 <input
                   id="languages"
                   type="text"
-                  required
                   value={languages}
                   onChange={(e) => setLanguages(e.target.value)}
-                  placeholder="English, Hindi, Punjabi"
+                  placeholder="English, Hindi, Sanskrit"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm"
                 />
               </div>
@@ -323,45 +325,52 @@ export default function DoctorSignup() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="8+ chars (1 number, 1 symbol)"
+                  placeholder="••••••••"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm"
                 />
-                {password && (
-                  <div className="mt-1">
-                    <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${getStrengthBarColor()}`}></div>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500">{getStrengthText()}</span>
-                  </div>
-                )}
               </div>
               <div>
-                <label htmlFor="confirm" className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Confirm Password</label>
+                <label htmlFor="confirmPassword" className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Confirm Password</label>
                 <input
-                  id="confirm"
+                  id="confirmPassword"
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter password"
+                  placeholder="••••••••"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm"
                 />
               </div>
             </div>
 
-            <h3 className="text-xs font-bold text-primary-700 uppercase tracking-widest border-b border-slate-100 pt-2 pb-1">2. Professional Details</h3>
+            {/* Password Strength Meter */}
+            {password && (
+              <div className="space-y-1">
+                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full transition-all duration-300 ${getStrengthBarColor()}`}></div>
+                </div>
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-slate-400">Security Check:</span>
+                  <span className="font-bold uppercase tracking-wider text-slate-700">{getStrengthText()}</span>
+                </div>
+              </div>
+            )}
+
+            <h3 className="text-xs font-bold text-primary-700 uppercase tracking-widest border-b border-slate-100 pt-4 pb-1">2. Professional Medical Credentials</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="qualification" className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Qualifications</label>
+                <label htmlFor="qualification" className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Highest Degree / Qualification</label>
                 <select
                   id="qualification"
+                  required
                   value={qualification}
                   onChange={(e) => setQualification(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800 text-sm"
                 >
-                  <option value="BAMS">BAMS (Bachelor of Ayurvedic Medicine & Surgery)</option>
-                  <option value="BAMS, MD (Ayurveda)">BAMS, MD (Ayurveda)</option>
+                  <option value="">Select Degree</option>
+                  <option value="BAMS">BAMS (Bachelor of Ayurvedic Medicine and Surgery)</option>
+                  <option value="MD (Ayurveda)">MD (Ayurveda)</option>
                   <option value="BAMS, PhD">BAMS, PhD (Ayurvedic Research)</option>
                   <option value="MS (Ayurveda)">MS (Ayurvedic Surgery)</option>
                 </select>
@@ -443,6 +452,13 @@ export default function DoctorSignup() {
                     const file = e.target.files?.[0];
                     if (file) {
                       setUploadName(file.name);
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          setUploadDataUrl(event.target.result as string);
+                        }
+                      };
+                      reader.readAsDataURL(file);
                     }
                   }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -556,7 +572,7 @@ export default function DoctorSignup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md text-sm mt-3"
+              className="w-full py-3 bg-primary-600 hover:bg-primary-750 text-white font-bold rounded-lg transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md text-sm mt-3"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
               Submit Practitioner Application
