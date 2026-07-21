@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     // Update in transaction: set password, mark OTP used, and revoke all active refresh tokens (logout all sessions)
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Update password
       await tx.user.update({
         where: { id: userId },

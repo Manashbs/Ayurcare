@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     // Mark OTP as used and update user status
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Set OTP as used
       await tx.otpVerification.update({
         where: { id: otp.id },
