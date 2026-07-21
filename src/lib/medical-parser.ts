@@ -284,8 +284,10 @@ export function parseMedicalText(text: string): { metrics: ExtractedMetric[]; te
   
   dbKeys.forEach(key => {
     const spec = CLINICAL_DATABASE[key];
+    // Build regex dynamically
     let pattern = new RegExp(`(?:${key}|${spec.name.split(' ')[0]})\\s*[:=-]?\\s*(\\d+(?:\\.\\d+)?)\\s*([a-zA-Z%^\\/0-9]*)\\s*(?:\\(([^)]+)\\))?`, 'i');
     
+    // Custom patterns for specific keys
     if (key === 'hemoglobin') pattern = /(?:hemoglobin|haemoglobin|hb|hgb)\s*[:=-]?\s*(\d+(?:\.\d+)?)/i;
     if (key === 'glucose') pattern = /(?:glucose|fasting glucose|fbs|blood sugar|sugar)\s*[:=-]?\s*(\d+(?:\.\d+)?)/i;
     if (key === 'hba1c') pattern = /(?:hba1c|glycated hemoglobin)\s*[:=-]?\s*(\d+(?:\.\d+)?)/i;
@@ -304,6 +306,7 @@ export function parseMedicalText(text: string): { metrics: ExtractedMetric[]; te
       let rawVal = match[1].replace(/,/g, '');
       let numVal = parseFloat(rawVal);
       if (!isNaN(numVal)) {
+        // Normalization
         if (key === 'wbc' && numVal > 250) numVal = numVal / 1000;
         if (key === 'platelets' && numVal > 1000) numVal = numVal / 1000;
 
@@ -324,8 +327,9 @@ export function parseMedicalText(text: string): { metrics: ExtractedMetric[]; te
     }
   });
 
-  // 3. Fallback generic line parser for custom laboratory lines
+  // 3. Fallback generic line parser for custom laboratory lines: "Test Name  Result  Unit  Reference"
   lines.forEach((line, idx) => {
+    // e.g. "Urea 28.5 mg/dL 15.0-45.0" or "Serum Iron 85 ug/dL 60-170"
     const genericMatch = line.match(/^([A-Za-z0-9\s()./-]{3,35})\s+([0-9.]+)\s+([a-zA-Z%/^0-9]+)?\s*\(?([0-9.-]+)?\)?$/);
     if (genericMatch) {
       const name = genericMatch[1].trim();
@@ -333,6 +337,7 @@ export function parseMedicalText(text: string): { metrics: ExtractedMetric[]; te
       const unit = genericMatch[3] || '';
       const range = genericMatch[4] || 'Standard';
 
+      // Avoid duplicate matching if already matched in db
       const alreadyMatched = metrics.some(m => m.name.toLowerCase().includes(name.toLowerCase()));
       if (!alreadyMatched && name.length > 2 && !/total|date|page|name|patient|age|gender|doctor|lab/i.test(name)) {
         let status: ExtractedMetric['status'] = 'NORMAL';

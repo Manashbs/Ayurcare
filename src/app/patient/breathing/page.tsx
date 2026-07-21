@@ -76,7 +76,7 @@ export default function BreathingSpace() {
   const [sessionSecondsLeft, setSessionSecondsLeft] = useState(120);
 
   const pattern = PATTERNS[selectedIdx];
-  const phase = pattern.phases[currentPhaseIdx] || pattern.phases[0];
+  const phase = pattern.phases[currentPhaseIdx];
 
   // Ref to handle AudioContext safety
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -110,7 +110,7 @@ export default function BreathingSpace() {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, ctx.currentTime);
 
-      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
 
       osc.connect(gain);
@@ -136,109 +136,61 @@ export default function BreathingSpace() {
     handleReset();
   }, [selectedIdx, sessionMinutes]);
 
-  const handleTogglePlay = () => {
-    // Directly resume AudioContext on user gesture (avoids security blocking)
-    try {
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    } catch (e) {
-      console.warn('Could not initialize AudioContext on gesture:', e);
-    }
-    setIsActive(!isActive);
-  };
-
-  const handleToggleMute = () => {
-    try {
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    } catch (e) {}
-    setIsMuted(!isMuted);
-  };
-
-  // Use refs for values needed inside the interval to avoid stale closures
-  const isActiveRef = useRef(isActive);
-  isActiveRef.current = isActive;
-  const isMutedRef = useRef(isMuted);
-  isMutedRef.current = isMuted;
-  const patternRef = useRef(pattern);
-  patternRef.current = pattern;
-
-  // Main breathing loop ticker — only depends on isActive
+  // Main breathing loop ticker
   useEffect(() => {
-    if (!isActive) return;
+    let interval: NodeJS.Timeout | null = null;
 
-    // Play sound at the very start
-    const currentPhase = patternRef.current.phases[currentPhaseIdx] || patternRef.current.phases[0];
-    playSound(currentPhase.soundFreq, 0.4);
+    if (isActive) {
+      // Play sound at start of a phase
+      if (phaseSecondsLeft === phase.duration) {
+        playSound(phase.soundFreq, 0.4);
+      }
 
-    const interval = setInterval(() => {
-      // Decrease phase timer
-      setPhaseSecondsLeft((prevPhase) => {
-        if (prevPhase <= 1) {
-          // Phase is finishing — transition to next
-          setCurrentPhaseIdx((prevIdx) => {
-            const pat = patternRef.current;
-            let nextIdx = (prevIdx + 1) % pat.phases.length;
-            let nextPhase = pat.phases[nextIdx];
+      interval = setInterval(() => {
+        // Decrease timers
+        setPhaseSecondsLeft((prev) => prev - 1);
+        setSessionSecondsLeft((prev) => Math.max(0, prev - 1));
+        setTotalSecondsBreathed((prev) => prev + 1);
 
-            // Skip 0-duration phases
-            if (nextPhase.duration === 0) {
-              nextIdx = (nextIdx + 1) % pat.phases.length;
-              nextPhase = pat.phases[nextIdx];
-            }
-
-            // Set the new phase duration
-            setPhaseSecondsLeft(nextPhase.duration);
-
-            // Play the phase transition sound
-            if (!isMutedRef.current && nextPhase.soundFreq > 0) {
-              playSound(nextPhase.soundFreq, 0.4);
-            }
-
-            return nextIdx;
-          });
-
-          // Return a high number temporarily; it will be overwritten by setPhaseSecondsLeft above
-          return 999;
-        }
-        return prevPhase - 1;
-      });
-
-      // Decrease session timer
-      setSessionSecondsLeft((prevSession) => {
-        if (prevSession <= 1) {
-          // Session complete!
+        // Check if session is completed
+        if (sessionSecondsLeft <= 1) {
           setIsActive(false);
-          playSound(660, 0.6);
-          setTimeout(() => playSound(880, 0.8), 200);
-          setTimeout(() => {
-            alert('Pranayama session completed! Peace and energy integrated.');
-            setCurrentPhaseIdx(0);
-            setPhaseSecondsLeft(patternRef.current.phases[0].duration);
-            setSessionSecondsLeft(patternRef.current.phases[0].duration);
-          }, 50);
           setCompletedSessions((prev) => prev + 1);
-          return 0;
+          playSound(660, 0.6); // Bell sound
+          setTimeout(() => playSound(880, 0.8), 200);
+          alert('Pranayama session completed! Peace and energy integrated.');
+          handleReset();
+          return;
         }
-        return prevSession - 1;
-      });
 
-      setTotalSecondsBreathed((prev) => prev + 1);
-    }, 1000);
+        // Handle phase transition
+        if (phaseSecondsLeft <= 1) {
+          const nextIdx = (currentPhaseIdx + 1) % pattern.phases.length;
+          // Skip phases with 0 duration (like Hold in Shheetali)
+          const nextPhase = pattern.phases[nextIdx];
+          if (nextPhase.duration === 0) {
+            const wrapIdx = (nextIdx + 1) % pattern.phases.length;
+            setCurrentPhaseIdx(wrapIdx);
+            setPhaseSecondsLeft(pattern.phases[wrapIdx].duration);
+          } else {
+            setCurrentPhaseIdx(nextIdx);
+            setPhaseSecondsLeft(nextPhase.duration);
+          }
+        }
+      }, 1000);
+    }
 
-    return () => clearInterval(interval);
-  }, [isActive]); // Only re-run when isActive changes
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isActive, phaseSecondsLeft, currentPhaseIdx, pattern, sessionSecondsLeft]);
 
   // Calculate animated circle scale and label
   const getCircleScaleClass = () => {
     if (!isActive) return 'scale-90';
-    if (phase.name === 'Inhale') return 'scale-125 duration-[1500ms]';
-    if (phase.name === 'Exhale') return 'scale-75 duration-[1500ms]';
-    return 'scale-100 duration-[1500ms]'; // Holds remain static
+    if (phase.name === 'Inhale') return 'scale-125 duration-1000';
+    if (phase.name === 'Exhale') return 'scale-75 duration-1000';
+    return 'scale-100 duration-1000'; // Holds remain static
   };
 
   const getPhaseColorClass = () => {
@@ -254,16 +206,16 @@ export default function BreathingSpace() {
   };
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto font-sans" id="breathing-space-page">
+    <div className="space-y-8 max-w-5xl mx-auto" id="breathing-space-page">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-primary-800 to-primary-700 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute -right-16 -top-16 w-48 h-48 bg-primary-600 rounded-full opacity-35 filter blur-2xl"></div>
+      <div className="bg-gradient-to-r from-primary-800 to-primary-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute -right-16 -top-16 w-48 h-48 bg-primary-550 rounded-full opacity-35 filter blur-2xl"></div>
         <div className="flex items-center space-x-4 relative z-10">
           <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md">
             <Wind className="w-6 h-6 text-gold-100 animate-pulse" />
           </div>
           <div>
-            <h1 className="font-display text-3xl font-extrabold tracking-tight">Breathing Space (Pranayama)</h1>
+            <h1 className="font-display text-3xl font-extrabold tracking-wide">Breathing Space (Pranayama)</h1>
             <p className="text-primary-100 text-sm mt-1">Calm your mind, balance your Doshas, and ground your life force with rhythmic breaths.</p>
           </div>
         </div>
@@ -272,8 +224,8 @@ export default function BreathingSpace() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Technique Selector */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-zinc-200/60 rounded-2xl p-6 premium-shadow">
-            <h3 className="text-slate-800 font-bold text-base mb-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-slate-800 font-bold text-base mb-4 flex items-center">
               Choose Pranayama
             </h3>
             <div className="space-y-3">
@@ -281,42 +233,42 @@ export default function BreathingSpace() {
                 <button
                   key={p.name}
                   onClick={() => setSelectedIdx(idx)}
-                  className={`w-full text-left p-4 rounded-xl border transition-premium cursor-pointer ${
+                  className={`w-full text-left p-4 rounded-xl border transition cursor-pointer ${
                     selectedIdx === idx
-                      ? 'border-primary-600 bg-primary-50/50 shadow-sm font-bold'
-                      : 'border-zinc-100 hover:border-zinc-300 bg-slate-50/30'
+                      ? 'border-primary-600 bg-primary-50/50 shadow-sm'
+                      : 'border-slate-100 hover:border-slate-300 bg-slate-50/50'
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase ${
-                      p.dosha === 'Vata' ? 'bg-indigo-50 border border-indigo-100 text-indigo-700' :
-                      p.dosha === 'Pitta' ? 'bg-amber-50 border border-amber-100 text-amber-700' :
-                      p.dosha === 'Kapha' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' :
-                      'bg-slate-50 border border-slate-100 text-slate-700'
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${
+                      p.dosha === 'Vata' ? 'bg-indigo-100 text-indigo-700' :
+                      p.dosha === 'Pitta' ? 'bg-amber-100 text-amber-700' :
+                      p.dosha === 'Kapha' ? 'bg-emerald-100 text-emerald-700' :
+                      'bg-slate-100 text-slate-700'
                     }`}>
-                      {p.dosha === 'All' ? 'Tri-Dosha' : `${p.dosha} Balancer`}
+                      {p.dosha === 'All' ? 'Tri-Dosha' : `${p.dosha} Balancing`}
                     </span>
                   </div>
                   <strong className="block text-slate-800 text-sm mt-2 font-bold">{p.name}</strong>
-                  <span className="block text-[10px] text-slate-400 font-medium italic mt-0.5">{p.sanskrit}</span>
+                  <span className="block text-[11px] text-slate-500 font-medium italic mt-0.5">{p.sanskrit}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Session settings */}
-          <div className="bg-white border border-zinc-200/60 rounded-2xl p-6 premium-shadow">
-            <h3 className="text-slate-800 font-bold text-xs uppercase tracking-wider mb-3">Session Length</h3>
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-slate-800 font-bold text-sm mb-3">Session Length</h3>
             <div className="grid grid-cols-4 gap-2">
               {[1, 2, 5, 10].map((mins) => (
                 <button
                   key={mins}
                   onClick={() => setSessionMinutes(mins)}
                   disabled={isActive}
-                  className={`py-2 rounded-lg text-xs font-bold border transition-premium cursor-pointer disabled:opacity-50 ${
+                  className={`py-2 rounded-lg text-xs font-bold border transition cursor-pointer disabled:opacity-50 ${
                     sessionMinutes === mins
-                      ? 'bg-primary-600 border-primary-600 text-white shadow-sm font-extrabold'
-                      : 'border-zinc-200 hover:border-zinc-350 text-slate-655 bg-white'
+                      ? 'bg-primary-600 border-primary-600 text-white shadow-sm'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
                   }`}
                 >
                   {mins} Min
@@ -328,22 +280,22 @@ export default function BreathingSpace() {
 
         {/* Right Column: Active Interactive Area */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-slate-900 border border-zinc-800/80 rounded-2xl p-6 md:p-8 shadow-xl flex flex-col items-center justify-center gap-6 min-h-[500px] relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-850 rounded-2xl p-8 lg:p-12 shadow-xl flex flex-col items-center justify-between min-h-[500px] relative overflow-hidden">
             {/* Guide Text */}
             <div className="text-center space-y-2 max-w-md relative z-10">
               <span className="text-[10px] text-primary-400 font-bold uppercase tracking-widest block">Active Exercise</span>
               <h2 className="text-white text-xl font-bold">{pattern.name}</h2>
-              <p className="text-slate-450 text-xs leading-relaxed">{pattern.desc}</p>
+              <p className="text-slate-400 text-xs leading-relaxed">{pattern.desc}</p>
             </div>
 
             {/* Interactive Breathing Sphere */}
             <div className="my-8 flex items-center justify-center relative">
               {/* Outer halo pulsing glow */}
-              <div className="absolute w-52 h-52 rounded-full border-2 border-dashed border-slate-800 animate-spin-slow"></div>
+              <div className={`absolute w-52 h-52 rounded-full border-2 border-dashed border-slate-800 animate-spin-slow`}></div>
               
               {/* Actual breathing sphere */}
               <div
-                onClick={() => handleTogglePlay()}
+                onClick={() => setIsActive(!isActive)}
                 className={`w-44 h-44 rounded-full border-4 flex flex-col items-center justify-center transition-all ease-in-out duration-1000 shadow-2xl relative z-10 cursor-pointer hover:scale-105 select-none ${getCircleScaleClass()} ${getPhaseColorClass()}`}
                 title={isActive ? 'Click to Pause exercise' : 'Click GO to Start exercise'}
               >
@@ -372,17 +324,17 @@ export default function BreathingSpace() {
               {/* Action Buttons */}
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={handleToggleMute}
-                  className={`w-10 h-10 rounded-full border border-slate-800 flex items-center justify-center transition hover:bg-slate-800 cursor-pointer`}
+                  onClick={() => setIsMuted(!isMuted)}
+                  className={`w-10 h-10 rounded-full border border-slate-800 flex items-center justify-center transition hover:bg-slate-850 cursor-pointer`}
                   title={isMuted ? 'Unmute guide tones' : 'Mute guide tones'}
                 >
-                  {isMuted ? <VolumeX className="w-4 h-4 text-slate-450" /> : <Volume2 className="w-4 h-4 text-gold-600" />}
+                  {isMuted ? <VolumeX className="w-4 h-4 text-slate-400" /> : <Volume2 className="w-4 h-4 text-gold-100" />}
                 </button>
 
                 <button
-                  onClick={handleTogglePlay}
+                  onClick={() => setIsActive(!isActive)}
                   className={`w-14 h-14 rounded-full flex items-center justify-center transition cursor-pointer shadow-lg hover:scale-105 ${
-                    isActive ? 'bg-rose-600 text-white' : 'bg-primary-600 text-slate-900'
+                    isActive ? 'bg-rose-600 text-white' : 'bg-primary-500 text-slate-900'
                   }`}
                 >
                   {isActive ? <Pause className="w-6 h-6 fill-white" /> : <Play className="w-6 h-6 fill-slate-900 ml-1" />}
@@ -390,7 +342,7 @@ export default function BreathingSpace() {
 
                 <button
                   onClick={handleReset}
-                  className="w-10 h-10 rounded-full border border-slate-800 flex items-center justify-center transition hover:bg-slate-800 text-slate-450 hover:text-white cursor-pointer"
+                  className="w-10 h-10 rounded-full border border-slate-800 flex items-center justify-center transition hover:bg-slate-850 text-slate-400 hover:text-white cursor-pointer"
                   title="Reset session"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -400,24 +352,24 @@ export default function BreathingSpace() {
           </div>
 
           {/* Stats & Guidelines */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            <div className="bg-white border border-zinc-200/60 rounded-2xl p-6 premium-shadow flex items-center space-x-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center space-x-4">
               <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center">
-                <Award className="w-5 h-5 text-primary-600" />
+                <Award className="w-6 h-6 text-primary-600" />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Today's Progress</span>
-                <strong className="text-slate-800 text-base font-bold">{completedSessions} Sessions</strong>
-                <span className="text-[10px] text-slate-450 block mt-0.5">Total breathed: {totalSecondsBreathed}s</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Today's Progress</span>
+                <strong className="text-slate-800 text-lg font-bold">{completedSessions} Sessions</strong>
+                <span className="text-[11px] text-slate-400 block mt-0.5">Total breathed: {totalSecondsBreathed}s</span>
               </div>
             </div>
 
-            <div className="bg-white border border-zinc-200/60 rounded-2xl p-6 premium-shadow flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                <Info className="w-5 h-5 text-indigo-600" />
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center space-x-4">
+              <div className="w-12 h-12 rounded-xl bg-indigo-55 bg-indigo-50 flex items-center justify-center">
+                <Info className="w-6 h-6 text-indigo-600" />
               </div>
-              <div className="text-xs text-slate-600 leading-relaxed">
-                <strong className="text-slate-800 font-bold block mb-0.5">Ayurvedic Guideline</strong>
+              <div className="text-xs text-slate-600">
+                <strong className="text-slate-800 font-bold block mb-0.5">Ayurvedic Practice Guideline</strong>
                 Sit comfortably with spine straight. For Alternate Nostril (Nadi Shodhana), close right nostril on inhale, close left on exhale.
               </div>
             </div>

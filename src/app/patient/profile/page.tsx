@@ -341,7 +341,7 @@ export default function PatientProfileDashboard() {
           <div className="space-y-4 text-xs font-semibold">
             {/* Locked Email Address */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-505 uppercase mb-1">Email Address (Read-only)</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Address (Read-only)</label>
               <input
                 type="text"
                 disabled
@@ -360,7 +360,7 @@ export default function PatientProfileDashboard() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Manas Kumar"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-205 border-slate-205 border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800"
                 />
               </div>
               <div>
@@ -371,7 +371,7 @@ export default function PatientProfileDashboard() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800"
                 />
               </div>
             </div>
@@ -393,7 +393,7 @@ export default function PatientProfileDashboard() {
                   id="gender"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 bg-white text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-850 bg-white text-slate-800"
                 >
                   <option value="">Select</option>
                   <option value="Male">Male</option>
@@ -429,7 +429,7 @@ export default function PatientProfileDashboard() {
                     value={allergies}
                     onChange={(e) => setAllergies(e.target.value)}
                     placeholder="e.g. Peanuts, Penicillin (leave blank if none)"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800"
                   />
                 </div>
                 <div>
@@ -440,7 +440,7 @@ export default function PatientProfileDashboard() {
                     value={chronicConditions}
                     onChange={(e) => setChronicConditions(e.target.value)}
                     placeholder="e.g. Hypertension, Asthma (leave blank if none)"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800"
                   />
                 </div>
               </div>
@@ -457,7 +457,7 @@ export default function PatientProfileDashboard() {
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder="Jane Doe"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-205 border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-800"
                   />
                 </div>
                 <div>
@@ -468,7 +468,7 @@ export default function PatientProfileDashboard() {
                     value={contactRelation}
                     onChange={(e) => setContactRelation(e.target.value)}
                     placeholder="Spouse / Parent"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-805 text-slate-800"
                   />
                 </div>
                 <div>
@@ -479,7 +479,7 @@ export default function PatientProfileDashboard() {
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     placeholder="9876543210"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-850 text-slate-800"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-600 text-slate-805 text-slate-850 text-slate-800"
                   />
                 </div>
               </div>
@@ -489,7 +489,7 @@ export default function PatientProfileDashboard() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary-600 hover:bg-primary-775 hover:bg-primary-700 text-white font-bold rounded-xl transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md text-sm mt-4"
+            className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md text-sm mt-4"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
             Save Profile Settings
@@ -507,6 +507,7 @@ export default function PatientProfileDashboard() {
             </h3>
 
             <div className="flex items-center space-x-6">
+              {/* Radial Pie-Circle Chart (simulated with layered gradients) */}
               <div className="relative w-28 h-28 rounded-full border-4 border-slate-100 flex items-center justify-center bg-gradient-to-tr from-indigo-500 via-amber-500 to-emerald-500 shadow-md">
                 <div className="absolute inset-2 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
                   <span className="text-[10px] text-slate-400 font-extrabold uppercase">Quiz Dominance</span>
@@ -514,38 +515,39 @@ export default function PatientProfileDashboard() {
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs font-semibold text-slate-605 text-slate-600 flex-1">
+              {/* Legend with matching colors */}
+              <div className="space-y-2 text-xs font-semibold text-slate-600 flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="w-3 h-3 rounded bg-indigo-500 block"></span>
                     <span>Vata Energy</span>
                   </div>
-                  <span className="font-bold text-slate-805 text-slate-800">35%</span>
+                  <span className="font-bold text-slate-800">35%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="w-3 h-3 rounded bg-amber-500 block"></span>
                     <span>Pitta Energy</span>
                   </div>
-                  <span className="font-bold text-slate-805 text-slate-800">45%</span>
+                  <span className="font-bold text-slate-800">45%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="w-3 h-3 rounded bg-emerald-500 block"></span>
                     <span>Kapha Energy</span>
                   </div>
-                  <span className="font-bold text-slate-850 text-slate-800">20%</span>
+                  <span className="font-bold text-slate-800">20%</span>
                 </div>
               </div>
             </div>
             
-            <p className="text-[11px] text-slate-400 leading-relaxed mt-4 italic">
+            <p className="text-[11px] text-slate-450 text-slate-400 leading-relaxed mt-4 italic">
               *Breakdown derived from your quiz responses. Take the quiz again under dashboards if you feel your symptoms or energies have shifted.
             </p>
           </div>
 
           {/* 2. Dinacharya Live Biological Clock */}
-          <div className="bg-slate-900 border border-slate-855 border-slate-850 rounded-2xl p-6 text-white shadow-lg space-y-4 relative overflow-hidden">
+          <div className="bg-slate-900 border border-slate-850 rounded-2xl p-6 text-white shadow-lg space-y-4 relative overflow-hidden">
             <div className="absolute -right-8 -top-8 w-24 h-24 bg-primary-600/35 rounded-full opacity-20 filter blur-xl"></div>
             
             <div className="flex justify-between items-center relative z-10">
@@ -553,7 +555,7 @@ export default function PatientProfileDashboard() {
                 <Clock className="w-4 h-4 mr-2" />
                 Dinacharya Biological Dial
               </h3>
-              <span className="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+              <span className="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-350 text-slate-300">
                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -574,9 +576,9 @@ export default function PatientProfileDashboard() {
           </div>
 
           {/* 3. Dinacharya Habits Tracker */}
-          <div className="bg-white border border-slate-202 border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-slate-800 font-bold text-sm flex items-center">
+              <h3 className="text-slate-805 text-slate-850 font-bold text-sm flex items-center">
                 <CheckSquare className="w-4 h-4 mr-2 text-primary-600" />
                 Daily Dinacharya Checklist
               </h3>
@@ -614,8 +616,8 @@ export default function PatientProfileDashboard() {
                   />
                   <div className="text-xs">
                     <div className="flex items-center space-x-1.5">
-                      <strong className="text-slate-805 text-slate-800 font-bold">{h.name}</strong>
-                      <span className="text-[9px] font-bold font-sans bg-slate-200 px-1 py-0.2 rounded text-slate-450">
+                      <strong className="text-slate-800 font-bold">{h.name}</strong>
+                      <span className="text-[9px] text-slate-450 font-bold font-sans bg-slate-200 px-1 py-0.2 rounded text-slate-450">
                         {h.sanskrit}
                       </span>
                     </div>

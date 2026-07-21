@@ -1,140 +1,79 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #edf7f2;
-  --color-primary-100: #d2ebe0;
-  --color-primary-200: #a7d7c1;
-  --color-primary-600: #125c3a;
-  --color-primary-700: #0a3d25;
-  --color-primary-800: #042113;
-  --color-primary-900: #02110a;
+  --color-primary-50: #f0f7f4;
+  --color-primary-100: #dcece5;
+  --color-primary-600: #1b5e20;
+  --color-primary-700: #123f16;
+  --color-primary-800: #0a250d;
   
   --color-gold-50: #fdfaf2;
-  --color-gold-100: #f6ecce;
-  --color-gold-600: #cca025;
-  --color-gold-700: #a17c18;
+  --color-gold-100: #fbf0d8;
+  --color-gold-600: #e6a100;
+  --color-gold-700: #b88100;
   
-  --color-cream: #faf9f6;
-  --color-cream-dark: #f3f0e8;
-  --color-charcoal: #141715;
+  --color-cream: #faf7f0;
+  --color-cream-dark: #f0e6d2;
 }
 
 :root {
-  --background: #faf9f6;
-  --foreground: #141715;
+  --background: #faf7f0;
+  --foreground: #1e2520;
   --card: #ffffff;
-  --card-foreground: #141715;
-  --primary: #125c3a;
+  --card-foreground: #1e2520;
+  --primary: #1b5e20;
   --primary-foreground: #ffffff;
-  --gold: #cca025;
-  --gold-foreground: #141715;
-  --border: #e9e8e3;
-  --ring: rgba(18, 92, 58, 0.15);
+  --gold: #e6a100;
+  --gold-foreground: #1e2520;
+  --border: #e2e8f0;
 }
 
 .dark {
-  --background: #0d0f0e;
-  --foreground: #f4f5f4;
-  --card: #141816;
-  --card-foreground: #f4f5f4;
-  --primary: #1a7e51;
+  --background: #111612;
+  --foreground: #f1f5f2;
+  --card: #19201b;
+  --card-foreground: #f1f5f2;
+  --primary: #2e7d32;
   --primary-foreground: #ffffff;
-  --gold: #dfb332;
-  --gold-foreground: #0d0f0e;
-  --border: #232a26;
-  --ring: rgba(26, 126, 81, 0.25);
+  --gold: #ffb300;
+  --gold-foreground: #111612;
+  --border: #2d3730;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* Beautiful custom scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(18, 92, 58, 0.12);
-  border-radius: 99px;
+  background: rgba(27, 94, 32, 0.2);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(18, 92, 58, 0.3);
+  background: rgba(27, 94, 32, 0.4);
 }
 
 /* Glassmorphism utility */
 .glass {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(228, 227, 221, 0.5);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .dark .glass {
-  background: rgba(20, 24, 22, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(35, 42, 38, 0.3);
-}
-
-/* Premium micro-interactions and transitions */
-.transition-premium {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.hover-glow:hover {
-  box-shadow: 0 0 20px rgba(18, 92, 58, 0.08);
-  border-color: rgba(18, 92, 58, 0.2);
-}
-
-.btn-premium {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.625rem 1.25rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  border-radius: 10px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Soft shadows for startup widgets */
-.premium-shadow {
-  box-shadow: 0 4px 20px -2px rgba(20, 23, 21, 0.02), 0 2px 8px -1px rgba(20, 23, 21, 0.02);
-}
-
-.premium-shadow-lg {
-  box-shadow: 0 20px 40px -10px rgba(20, 23, 21, 0.04), 0 10px 20px -5px rgba(20, 23, 21, 0.03);
-}
-
-/* Custom keyframe animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.4s ease-out both;
-}
-.animate-slideUp {
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.animate-spin-slow {
-  animation: spin-slow 20s linear infinite;
+  background: rgba(25, 32, 27, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
