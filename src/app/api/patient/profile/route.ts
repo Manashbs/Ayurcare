@@ -40,7 +40,7 @@ export async function PUT(request: Request) {
       : emergencyContact || null;
 
     // Perform atomic transaction updates
-    const updatedUser = await prisma.$transaction(async (tx) => {
+    const updatedUser = await prisma.$transaction(async (tx: any) => {
       // 1. Update User Details
       const u = await tx.user.update({
         where: { id: payload.userId },

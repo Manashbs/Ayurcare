@@ -36,7 +36,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { name, phone, qualification, specializations, experienceYears, bio, feePerConsult, clinicAddress, languages, availability } = body;
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: any) => {
       // Update User details
       const userUpdate: any = {};
       if (name) userUpdate.name = name;
