@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const scheduledDate = new Date(scheduledAt);
 
     // Book in transaction: create appointment and complete mock payment SUCCESS
-    const newAppointment = await prisma.$transaction(async (tx) => {
+    const newAppointment = await prisma.$transaction(async (tx: any) => {
       const appointment = await tx.appointment.create({
         data: {
           patientId: patient.userId,
