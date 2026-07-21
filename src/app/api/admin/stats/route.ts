@@ -59,7 +59,7 @@ export async function GET() {
       where: { NOT: { diagnosis: null } },
     });
     const ailmentsMap: { [key: string]: number } = {};
-    consultations.forEach((c) => {
+    consultations.forEach((c: { diagnosis: string | null }) => {
       const diagnosis = c.diagnosis || 'General';
       const key = diagnosis.trim().toLowerCase();
       ailmentsMap[key] = (ailmentsMap[key] || 0) + 1;
