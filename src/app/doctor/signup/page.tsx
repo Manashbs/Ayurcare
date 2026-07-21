@@ -5,6 +5,47 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Stethoscope, AlertCircle, UploadCloud, Camera, Check, User } from 'lucide-react';
 
+function compressImageFile(file: File, maxWidth = 600, maxHeight = 800, quality = 0.65): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (!file.type.startsWith('image/')) {
+        resolve(src);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(src);
+        }
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function DoctorSignup() {
   const router = useRouter();
   
@@ -53,7 +94,7 @@ export default function DoctorSignup() {
     setError('');
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
+        video: { width: 480, height: 480, facingMode: 'user' },
       });
       setStream(mediaStream);
       setCameraActive(true);
@@ -80,8 +121,8 @@ export default function DoctorSignup() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      const width = video.videoWidth || 400;
-      const height = video.videoHeight || 400;
+      const width = 300;
+      const height = 380;
 
       canvas.width = width;
       canvas.height = height;
@@ -91,8 +132,8 @@ export default function DoctorSignup() {
         context.translate(width, 0);
         context.scale(-1, 1);
         context.drawImage(video, 0, 0, width, height);
-        const base64 = canvas.toDataURL('image/jpeg', 0.9);
-        if (base64 && base64.length > 500) {
+        const base64 = canvas.toDataURL('image/jpeg', 0.65);
+        if (base64 && base64.length > 100) {
           setCapturedImage(base64);
         }
         stopCamera();
@@ -190,8 +231,9 @@ export default function DoctorSignup() {
       } else {
         setError(data.error || 'Registration failed');
       }
-    } catch (err) {
-      setError('Failed to connect to the server.');
+    } catch (err: any) {
+      console.error('Registration fetch error:', err);
+      setError(err?.message || 'Registration failed. Payload may be too large.');
     } finally {
       setLoading(false);
     }
@@ -448,17 +490,12 @@ export default function DoctorSignup() {
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center hover:bg-slate-50 transition cursor-pointer relative">
                 <input
                   type="file"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       setUploadName(file.name);
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        if (event.target?.result) {
-                          setUploadDataUrl(event.target.result as string);
-                        }
-                      };
-                      reader.readAsDataURL(file);
+                      const compressed = await compressImageFile(file, 800, 1000, 0.65);
+                      setUploadDataUrl(compressed);
                     }
                   }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -528,16 +565,11 @@ export default function DoctorSignup() {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                if (event.target?.result) {
-                                  setCapturedImage(event.target.result as string);
-                                }
-                              };
-                              reader.readAsDataURL(file);
+                              const compressed = await compressImageFile(file, 400, 500, 0.65);
+                              setCapturedImage(compressed);
                             }
                           }}
                           className="hidden"
