@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     if (!patient) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { sessionId, message } = body;
+    const { sessionId, message, userApiKey } = body;
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -62,8 +62,8 @@ export async function POST(request: Request) {
     const messages = JSON.parse(session.messages || '[]');
     messages.push({ role: 'user', content: message });
 
-    // Call AI service
-    const aiResult = await getAiResponse(messages);
+    // Call AI service with optional userApiKey
+    const aiResult = await getAiResponse(messages, userApiKey);
     messages.push({ role: 'assistant', content: aiResult.text });
 
     // Save back to DB
