@@ -30,7 +30,7 @@ export default function DoctorConsultationRoom() {
   const [callConnected, setCallConnected] = useState(false);
 
   // Embedded video iframe room URL
-  const embedVideoUrl = `https://meet.jit.si/AyurCare-Consultation-${appointmentId}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','desktop','fullscreen','hangup']`;
+  const embedVideoUrl = `https://meet.jit.si/VedaSync-Consultation-${appointmentId}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','desktop','fullscreen','hangup']`;
 
   // Socket.io / Chat states
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -350,7 +350,7 @@ export default function DoctorConsultationRoom() {
         <div className="bg-slate-950 p-4 border-b border-slate-850 flex justify-between items-center text-white z-10">
           <div className="flex items-center space-x-2">
             <Video className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-display font-bold text-xs sm:text-sm">AyurCare Live Video Consultation</h3>
+            <h3 className="font-display font-bold text-xs sm:text-sm">VedaSync Live Video Consultation</h3>
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-[11px] font-bold text-gold-400 bg-gold-950/60 px-3 py-1 rounded-full border border-gold-800/40 flex items-center">

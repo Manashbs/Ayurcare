@@ -20,7 +20,7 @@ export default function PatientConsultationRoom() {
   const [callConnected, setCallConnected] = useState(false);
 
   // Embedded video iframe room URL
-  const embedVideoUrl = `https://meet.jit.si/AyurCare-Consultation-${appointmentId}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','desktop','fullscreen','hangup']`;
+  const embedVideoUrl = `https://meet.jit.si/VedaSync-Consultation-${appointmentId}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','desktop','fullscreen','hangup']`;
 
   // Socket.io/Chat states
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -251,7 +251,7 @@ export default function PatientConsultationRoom() {
                 src={embedVideoUrl}
                 allow="camera; microphone; display-capture; autoplay; clipboard-write"
                 className="w-full h-full border-0 bg-slate-900"
-                title="AyurCare Video Consultation"
+                title="VedaSync Video Consultation"
               />
             </div>
           ) : (

@@ -51,7 +51,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         <div className="space-y-6">
           <div className="flex items-center space-x-2 border-b border-slate-100 pb-4">
             <Heart className="w-6 h-6 text-primary-600 fill-primary-600" />
-            <span className="font-display font-black text-lg text-slate-800">AyurCare</span>
+            <span className="font-display font-black text-lg text-slate-800">VedaSync</span>
           </div>
           <nav className="space-y-1 flex flex-col text-xs font-bold text-slate-600 max-h-[62vh] overflow-y-auto pr-1">
             <Link

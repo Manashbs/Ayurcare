@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Header */}
           <div className="flex items-center space-x-3 text-red-500">
             <ShieldCheck className="w-7 h-7" />
-            <span className="font-display font-bold text-lg tracking-wide">AyurCare Admin</span>
+            <span className="font-display font-bold text-lg tracking-wide">VedaSync Admin</span>
           </div>
 
           {/* Nav Links */}

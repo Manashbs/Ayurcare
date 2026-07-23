@@ -111,7 +111,7 @@ export default function GoogleMockLogin() {
 
           <div className="space-y-4">
             <h1 className="text-[32px] font-normal leading-[40px] text-white tracking-tight">
-              You're signing back in to AyurCare
+              You're signing back in to VedaSync
             </h1>
 
             {/* Email dropdown selector pill */}
@@ -201,7 +201,7 @@ export default function GoogleMockLogin() {
           {/* Legal / Policy Disclaimer matching screenshot */}
           <div className="space-y-4 text-sm text-[#c4c7c5] leading-relaxed">
             <p>
-              Review AyurCare's <span className="text-[#8ab4f8] cursor-pointer hover:underline">privacy policy</span> and <span className="text-[#8ab4f8] cursor-pointer hover:underline">Terms of Service</span> to understand how AyurCare will process and protect your data.
+              Review VedaSync's <span className="text-[#8ab4f8] cursor-pointer hover:underline">privacy policy</span> and <span className="text-[#8ab4f8] cursor-pointer hover:underline">Terms of Service</span> to understand how VedaSync will process and protect your data.
             </p>
             <p>
               To make changes at any time, go to your <span className="text-[#8ab4f8] cursor-pointer hover:underline">Google Account</span>.

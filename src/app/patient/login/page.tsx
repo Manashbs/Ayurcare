@@ -248,10 +248,10 @@ function PatientLoginContent() {
         
         {/* Brand Header */}
         <div className="flex items-center space-x-2 z-10">
-          <div className="w-10 h-10 rounded-full bg-gold-600 flex items-center justify-center font-bold text-lg text-primary-800">
-            A
+          <div className="w-10 h-10 rounded-xl bg-gold-600 flex items-center justify-center font-bold text-lg text-primary-850">
+            VS
           </div>
-          <span className="font-display font-bold text-2xl tracking-wide">AyurCare</span>
+          <span className="font-display font-bold text-2xl tracking-wide">VedaSync</span>
         </div>
 
         {/* Brand Quote */}
@@ -270,7 +270,7 @@ function PatientLoginContent() {
 
         {/* Footer info */}
         <div className="text-sm text-primary-100 opacity-70 z-10">
-          &copy; 2026 AyurCare Health. All rights reserved.
+          &copy; 2026 VedaSync AI Health. All rights reserved.
         </div>
       </section>
 
