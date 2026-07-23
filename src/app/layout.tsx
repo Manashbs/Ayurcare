@@ -14,9 +14,9 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: 'AyurCare - Ayurvedic Telemedicine & AI Wellness',
-  description: 'Consult verified Ayurvedic physicians online, take our Prakriti (Dosha) quiz, and interact with PrakritiAI for wellness guidance.',
-  keywords: 'ayurveda, telemedicine, wellness, dosha quiz, vata, pitta, kapha, herbal remedies, online doctor consultation',
+  title: 'VedaSync AI - Next-Gen Ayurvedic Telehealth & AI Wellness',
+  description: 'Sync your biological rhythms with ancient wisdom and advanced AI. Consult verified Ayurvedic physicians online, analyze reports, and take the Prakriti Dosha assessment.',
+  keywords: 'ayurveda, veda, vedasync, telehealth, telemedicine, wellness, dosha quiz, vata, pitta, kapha, herbal remedies, AI health report analyzer, online doctor consultation',
 };
 
 export default function RootLayout({

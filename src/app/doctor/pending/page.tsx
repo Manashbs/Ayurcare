@@ -43,7 +43,7 @@ export default function DoctorPending() {
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4 text-xs font-semibold my-6 flex items-start text-left">
           <ShieldAlert className="w-5 h-5 mr-2.5 flex-shrink-0 text-gold-600" />
           <span>
-            Your medical license registration and credentials have been submitted for verification. Under AyurCare security guidelines, all practitioners must be vetted by our Admin team before consulting patients.
+            Your medical license registration and credentials have been submitted for verification. Under VedaSync security guidelines, all practitioners must be vetted by our Admin team before consulting patients.
           </span>
         </div>
 

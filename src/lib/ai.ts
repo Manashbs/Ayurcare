@@ -5,8 +5,8 @@ Your primary task is to provide general wellness guidance, diet recommendations 
 
 CRITICAL INSTRUCTIONS:
 1. You are NOT a doctor and cannot diagnose, cure, or treat any medical conditions.
-2. Always append a clear disclaimer: "Disclaimer: This is for educational and wellness purposes only. It is not a medical diagnosis. Please consult a verified physician on AyurCare for any specific medical symptoms."
-3. If the user asks about serious, acute, or emergency medical symptoms (e.g., chest pain, breathing difficulties, high fever, severe infections, sudden severe pain, poisoning), immediately stop giving remedies and instruct them to book a consultation with a verified physician on AyurCare or visit an emergency room.`;
+2. Always append a clear disclaimer: "Disclaimer: This is for educational and wellness purposes only. It is not a medical diagnosis. Please consult a verified physician on VedaSync for any specific medical symptoms."
+3. If the user asks about serious, acute, or emergency medical symptoms (e.g., chest pain, breathing difficulties, high fever, severe infections, sudden severe pain, poisoning), immediately stop giving remedies and instruct them to book a consultation with a verified physician on VedaSync or visit an emergency room.`;
 
 const EMERGENCY_KEYWORDS = [
   'suicide', 'self harm', 'kill myself', 'die', 'chest pain', 'breathing difficulty', 
@@ -43,7 +43,7 @@ export async function getAiResponse(messages: ChatMessage[], userApiKey?: string
   
   let finalText = aiResult.text;
   if (!finalText.includes('Disclaimer')) {
-    finalText += `\n\n***\nDisclaimer: This is for educational and wellness purposes only. It is not a medical diagnosis. Please consult a verified physician on AyurCare for any specific medical symptoms.`;
+    finalText += `\n\n***\nDisclaimer: This is for educational and wellness purposes only. It is not a medical diagnosis. Please consult a verified physician on VedaSync for any specific medical symptoms.`;
   }
 
   return { text: finalText, flagged: false };

@@ -106,10 +106,10 @@ export default function PatientSignup() {
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gold-600 rounded-full opacity-20 filter blur-3xl"></div>
         
         <div className="flex items-center space-x-2 z-10">
-          <div className="w-10 h-10 rounded-full bg-gold-600 flex items-center justify-center font-bold text-lg text-primary-800">
-            A
+          <div className="w-10 h-10 rounded-xl bg-gold-600 flex items-center justify-center font-bold text-lg text-primary-850">
+            VS
           </div>
-          <span className="font-display font-bold text-2xl tracking-wide">AyurCare</span>
+          <span className="font-display font-bold text-2xl tracking-wide">VedaSync</span>
         </div>
 
         <div className="my-auto z-10 max-w-md">
@@ -126,7 +126,7 @@ export default function PatientSignup() {
         </div>
 
         <div className="text-sm text-primary-100 opacity-70 z-10">
-          &copy; 2026 AyurCare Health. All rights reserved.
+          &copy; 2026 VedaSync AI Health. All rights reserved.
         </div>
       </section>
 

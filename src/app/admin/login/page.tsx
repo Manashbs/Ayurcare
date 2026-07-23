@@ -56,7 +56,7 @@ export default function AdminLogin() {
           <ShieldCheck className="w-8 h-8" />
         </div>
 
-        <h2 className="font-display text-2xl font-bold text-center text-slate-800 tracking-wide font-display">AyurCare Control Panel</h2>
+        <h2 className="font-display text-2xl font-bold text-center text-slate-800 tracking-wide font-display">VedaSync Control Panel</h2>
         <p className="text-center text-slate-400 mt-2 text-xs font-semibold uppercase tracking-widest">Administrator Login Only</p>
 
         {error && (
