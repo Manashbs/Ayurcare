@@ -3,7 +3,73 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Loader2, Calendar, Clock, Video, Heart, AlertCircle, FileText, Plus, BookOpen, Smile, Droplet, Coffee, Activity } from 'lucide-react';
+import { 
+  Loader2, Calendar, Clock, Video, Heart, AlertCircle, FileText, Plus, BookOpen, 
+  Smile, Droplet, Coffee, Activity, Cloud, Sun, CloudRain, Wind, ShieldCheck, 
+  Search, RefreshCw, CheckCircle2, ChevronRight, Sparkles, CheckSquare, Square, 
+  Flame, ListTodo
+} from 'lucide-react';
+
+interface DinacharyaTask {
+  id: string;
+  name: string;
+  sanskrit: string;
+  desc: string;
+  benefit: string;
+}
+
+const DINACHARYA_TASKS: DinacharyaTask[] = [
+  {
+    id: 'ushapana',
+    name: 'Ushapana (Warm Water)',
+    sanskrit: 'उषःपान',
+    desc: 'Drink 1-2 glasses of warm water on an empty stomach.',
+    benefit: 'Ignites Agni (digestive fire) and flushes out metabolic waste (Ama).'
+  },
+  {
+    id: 'jihva',
+    name: 'Jihva Nirlekhan (Tongue Scraping)',
+    sanskrit: 'जिह्वा निर्लेखन',
+    desc: 'Scrape tongue from back to front 7-10 times using copper or steel.',
+    benefit: 'Clears toxic coating, stimulates salivary glands, and alerts internal organs.'
+  },
+  {
+    id: 'gandusha',
+    name: 'Gandusha (Oil Pulling)',
+    sanskrit: 'गण्डूष',
+    desc: 'Swish 1 tbsp of cold-pressed sesame or coconut oil for 5-10 minutes.',
+    benefit: 'Strengthens teeth/gums, brightens skin, and extracts fat-soluble toxins.'
+  },
+  {
+    id: 'pranayama',
+    name: 'Pranayama & Dhyana',
+    sanskrit: 'प्राणायाम',
+    desc: 'Perform Nadi Shodhana (Alternate Nostril) & 5 mins meditation.',
+    benefit: 'Balances left/right brain hemispheres and calms the nervous system.'
+  },
+  {
+    id: 'abhyanga',
+    name: 'Abhyanga (Warm Oil Massage)',
+    sanskrit: 'अभ्यङ्ग',
+    desc: 'Perform gentle self-massage with warm sesame/coconut oil before bath.',
+    benefit: 'Stimulates circulation, delays aging, and releases muscle fatigue.'
+  }
+];
+
+const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
+  'new delhi': { lat: 28.6139, lon: 77.2090 },
+  'delhi': { lat: 28.6139, lon: 77.2090 },
+  'mumbai': { lat: 19.0760, lon: 72.8777 },
+  'bengaluru': { lat: 12.9716, lon: 77.5946 },
+  'bangalore': { lat: 12.9716, lon: 77.5946 },
+  'kolkata': { lat: 22.5726, lon: 88.3639 },
+  'chennai': { lat: 13.0827, lon: 80.2707 },
+  'hyderabad': { lat: 17.3850, lon: 78.4867 },
+  'pune': { lat: 18.5204, lon: 73.8567 },
+  'london': { lat: 51.5074, lon: -0.1278 },
+  'new york': { lat: 40.7128, lon: -74.0060 },
+  'san francisco': { lat: 37.7749, lon: -122.4194 }
+};
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -20,6 +86,20 @@ export default function PatientDashboard() {
   const [trackerLogs, setTrackerLogs] = useState<any[]>([]);
   const [trackerSuccess, setTrackerSuccess] = useState('');
   const [trackerLoading, setTrackerLoading] = useState(false);
+
+  // Redesign tabs: 'wellness' | 'prescriptions' | 'records'
+  const [activeTab, setActiveTab] = useState<'wellness' | 'prescriptions' | 'records'>('wellness');
+
+  // Weather States
+  const [city, setCity] = useState('New Delhi');
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [weatherAiAdvice, setWeatherAiAdvice] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [citySearchInput, setCitySearchInput] = useState('');
+
+  // Checklist Tasks state
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const fetchData = async () => {
     try {
@@ -50,9 +130,99 @@ export default function PatientDashboard() {
     }
   };
 
+  // Weather and Weather AI Fetching
+  const fetchWeatherAndAiAdvice = async (targetCity: string) => {
+    setWeatherLoading(true);
+    try {
+      const cityKey = targetCity.toLowerCase().trim();
+      const coords = CITY_COORDINATES[cityKey] || { lat: 28.6139, lon: 77.2090 }; // default Delhi
+      
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`
+      );
+      
+      let temp = 25;
+      let humidity = 60;
+      let wCode = 0;
+      let windSpeed = 10;
+
+      if (weatherRes.ok) {
+        const data = await weatherRes.json();
+        temp = Math.round(data.current?.temperature_2m || 25);
+        humidity = Math.round(data.current?.relative_humidity_2m || 60);
+        wCode = data.current?.weather_code || 0;
+        windSpeed = Math.round(data.current?.wind_speed_10m || 10);
+        
+        setWeatherData({ temp, humidity, wCode, windSpeed, city: targetCity });
+      } else {
+        // Fallback mock weather data
+        setWeatherData({ temp, humidity, wCode, windSpeed, city: targetCity });
+      }
+
+      // Weather condition string
+      let condition = 'Clear Sky';
+      if (wCode >= 1 && wCode <= 3) condition = 'Partly Cloudy';
+      else if (wCode >= 45 && wCode <= 48) condition = 'Foggy';
+      else if (wCode >= 51 && wCode <= 67) condition = 'Rainy';
+      else if (wCode >= 80 && wCode <= 82) condition = 'Rain Showers';
+      else if (wCode >= 95) condition = 'Thunderstorm';
+
+      // Call our weather AI api route
+      const aiRes = await fetch('/api/patient/weather-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temp, humidity, condition, city: targetCity })
+      });
+
+      if (aiRes.ok) {
+        const json = await aiRes.json();
+        if (json.success && json.data) {
+          setWeatherAiAdvice(json.data);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading weather data/AI:', err);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    
+    // Load city from storage or fallback
+    const storedCity = localStorage.getItem('vedasync_city') || 'New Delhi';
+    setCity(storedCity);
+    setCitySearchInput(storedCity);
+    fetchWeatherAndAiAdvice(storedCity);
+
+    // Load completed morning checklist tasks
+    const storedTasksKey = `vedasync_tasks_${todayStr}`;
+    const storedTasks = localStorage.getItem(storedTasksKey);
+    if (storedTasks) {
+      setCompletedTasks(JSON.parse(storedTasks));
+    }
   }, []);
+
+  const handleCitySearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!citySearchInput.trim()) return;
+    setCity(citySearchInput);
+    localStorage.setItem('vedasync_city', citySearchInput);
+    fetchWeatherAndAiAdvice(citySearchInput);
+  };
+
+  const toggleTask = (taskId: string) => {
+    const isCompleted = completedTasks.includes(taskId);
+    let newCompleted: string[];
+    if (isCompleted) {
+      newCompleted = completedTasks.filter(id => id !== taskId);
+    } else {
+      newCompleted = [...completedTasks, taskId];
+    }
+    setCompletedTasks(newCompleted);
+    localStorage.setItem(`vedasync_tasks_${todayStr}`, JSON.stringify(newCompleted));
+  };
 
   const handleWellnessSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,23 +248,39 @@ export default function PatientDashboard() {
     }
   };
 
-  // Find the next upcoming appointment
-  const nextAppt = appointments.find((appt) => appt.status === 'CONFIRMED');
+  // Find the next upcoming confirmed appointment that has not expired
+  const nextAppt = appointments.find((appt) => {
+    if (appt.status !== 'CONFIRMED') return false;
+    const scheduledTime = new Date(appt.scheduledAt).getTime();
+    const expiryTime = scheduledTime + (90 * 60 * 1000); // 90 min window
+    return Date.now() < expiryTime;
+  });
 
   const activePrescriptions = records?.prescriptions?.filter((p: any) => p.status === 'ACTIVE') || [];
   const reports = records?.labReports || [];
 
+  // Weather Icon Helper
+  const getWeatherIcon = (code: number) => {
+    if (code === 0) return <Sun className="w-8 h-8 text-amber-500 animate-spin" style={{ animationDuration: '10s' }} />;
+    if (code >= 1 && code <= 3) return <Cloud className="w-8 h-8 text-sky-400" />;
+    if (code >= 51 && code <= 82) return <CloudRain className="w-8 h-8 text-primary-500 animate-bounce" />;
+    return <Sun className="w-8 h-8 text-amber-500" />;
+  };
+
+  // Checklist Completion Stats
+  const completionPercentage = Math.round((completedTasks.length / DINACHARYA_TASKS.length) * 100);
+
   return (
-    <div className="space-y-8 animate-fadeIn font-sans text-slate-800">
+    <div className="space-y-8 animate-fadeIn font-sans text-slate-800" id="vedasync-patient-dashboard">
       {/* Header banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-wide text-slate-800">My Health Space</h1>
-          <p className="text-slate-500 text-sm mt-1">Hello, {user?.name}. Check your dosha status, bookings, and recommendations.</p>
+          <p className="text-slate-500 text-sm mt-1">Hello, {user?.name}. Syncing your daily wellness routine and schedules.</p>
         </div>
         <Link
           href="/patient/doctors"
-          className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg transition duration-200 flex items-center shadow cursor-pointer"
+          className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg transition duration-200 flex items-center shadow-md cursor-pointer glow-green btn-premium"
         >
           <Plus className="w-4 h-4 mr-2" /> Book Ayurvedic Consult
         </Link>
@@ -108,12 +294,12 @@ export default function PatientDashboard() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Column: Left grid blocks (7 cols) */}
+          {/* Left Column: Primary workspace (8 cols) */}
           <div className="lg:col-span-8 space-y-8">
             
-            {/* Upcoming Consult */}
-            {nextAppt ? (
-              <div className="bg-gradient-to-r from-primary-800 to-primary-700 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative overflow-hidden">
+            {/* Upcoming Consult Link Banner (Shows only if confirmed and not expired) */}
+            {nextAppt && (
+              <div className="bg-gradient-to-r from-primary-800 to-primary-700 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative overflow-hidden glow-green">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary-600 rounded-full opacity-20 filter blur-3xl"></div>
                 <div className="space-y-2 z-10">
                   <span className="text-[10px] font-bold bg-gold-600 text-primary-850 px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -127,27 +313,9 @@ export default function PatientDashboard() {
                 </div>
                 <Link
                   href={`/patient/consultations/${nextAppt.id}`}
-                  className="px-5 py-3 bg-gold-600 hover:bg-gold-700 text-primary-850 font-bold rounded-lg transition duration-200 shadow-md text-xs flex items-center justify-center z-10 cursor-pointer text-slate-900"
+                  className="px-5 py-3 bg-gold-600 hover:bg-gold-700 text-primary-850 font-bold rounded-lg transition duration-200 shadow-md text-xs flex items-center justify-center z-10 cursor-pointer text-slate-900 glow-gold"
                 >
                   <Video className="w-4 h-4 mr-2" /> Join Video Consultation Room
-                </Link>
-              </div>
-            ) : (
-              <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="flex items-start space-x-4">
-                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-400">
-                    <Calendar className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800">No Consultations Confirmed</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Need customized Ayurvedic prescription support? Book one of our vetted MD specialists.</p>
-                  </div>
-                </div>
-                <Link
-                  href="/patient/doctors"
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition whitespace-nowrap cursor-pointer"
-                >
-                  Schedule Appointment
                 </Link>
               </div>
             )}
@@ -164,107 +332,381 @@ export default function PatientDashboard() {
               </div>
               <Link
                 href="/patient/ai-chat"
-                className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs text-center block shadow cursor-pointer"
+                className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs text-center block shadow cursor-pointer transition"
               >
                 Launch Bot Chat
               </Link>
             </div>
 
-            {/* Active Prescriptions */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-              <div className="border-b border-slate-100 pb-3 mb-4">
-                <h3 className="font-display font-bold text-lg text-slate-800">My Active Prescriptions</h3>
+            {/* Premium Tabbed Navigation Panel */}
+            <div className="bg-white border border-slate-100 rounded-3xl shadow-xl overflow-hidden">
+              <div className="bg-slate-50 p-2.5 border-b border-slate-100 flex items-center space-x-1">
+                <button
+                  onClick={() => setActiveTab('wellness')}
+                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer ${
+                    activeTab === 'wellness'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Flame className="w-4 h-4 text-gold-600" />
+                  <span>Today's Vedic Space</span>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('prescriptions')}
+                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer ${
+                    activeTab === 'prescriptions'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span>My Prescriptions ({activePrescriptions.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('records')}
+                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer ${
+                    activeTab === 'records'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4 text-primary-600" />
+                  <span>Lab Analysis & Reports ({reports.length})</span>
+                </button>
               </div>
-              {activePrescriptions.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs">
-                  <FileText className="w-8 h-8 mx-auto text-slate-200 mb-2" />
-                  No active e-prescriptions assigned.
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-50">
-                  {activePrescriptions.map((pres: any) => {
-                    const medicines = JSON.parse(pres.medicines || '[]');
-                    return (
-                      <div key={pres.id} className="py-4 flex justify-between items-start gap-4">
-                        <div>
-                          <h4 className="font-bold text-slate-800 text-sm">Formulated by Dr. {pres.doctor?.user?.name}</h4>
-                          <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Assigned: {new Date(pres.assignedAt).toLocaleDateString()}</span>
-                          <div className="mt-2.5 space-y-1">
-                            {medicines.map((med: any, idx: number) => (
-                              <div key={idx} className="text-xs font-semibold text-slate-600">
-                                • <strong className="text-primary-800">{med.name}</strong> - {med.dosage} ({med.frequency}, Anupana: {med.anupana})
-                              </div>
-                            ))}
+
+              {/* Tab Contents */}
+              <div className="p-6">
+                
+                {/* TAB 1: Today's Vedic Space (Weather AI + Dinacharya) */}
+                {activeTab === 'wellness' && (
+                  <div className="space-y-8">
+                    
+                    {/* Weather AI Advisor Widget */}
+                    <div className="bg-gradient-to-br from-primary-50/50 to-primary-100/50 border border-primary-200/50 rounded-2xl p-6 relative overflow-hidden">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-4 border-b border-primary-200/30">
+                        {/* Dynamic weather readings */}
+                        <div className="flex items-center space-x-4">
+                          <div className="p-3 bg-white rounded-2xl shadow-md border border-primary-100 flex items-center justify-center">
+                            {weatherData ? getWeatherIcon(weatherData.wCode) : <Sun className="w-8 h-8 text-amber-500 animate-spin" />}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2.5">
+                              <span className="text-2xl font-black text-slate-800">{weatherData ? `${weatherData.temp}°C` : '...'}</span>
+                              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest bg-white/70 px-2 py-0.5 rounded border border-slate-100">{city}</span>
+                            </div>
+                            <div className="flex items-center space-x-3 text-xs text-slate-500 mt-0.5 font-semibold">
+                              <span className="flex items-center"><Droplet className="w-3.5 h-3.5 mr-1 text-primary-600" /> Hum: {weatherData ? `${weatherData.humidity}%` : '...'}</span>
+                              <span className="flex items-center"><Wind className="w-3.5 h-3.5 mr-1 text-sky-500" /> Wind: {weatherData ? `${weatherData.windSpeed} km/h` : '...'}</span>
+                            </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => alert(`Downloading PDF copy: ${pres.pdfUrl}`)}
-                          className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 rounded-lg cursor-pointer"
-                        >
-                          Download PDF
-                        </button>
+
+                        {/* Search City */}
+                        <form onSubmit={handleCitySearchSubmit} className="flex items-center space-x-1.5 w-full md:w-auto">
+                          <div className="relative flex-grow md:flex-grow-0">
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={citySearchInput}
+                              onChange={(e) => setCitySearchInput(e.target.value)}
+                              placeholder="Type city..."
+                              className="pl-9 pr-3 py-1.5 w-full md:w-40 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-600"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={weatherLoading}
+                            className="p-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs cursor-pointer shadow flex items-center justify-center"
+                          >
+                            {weatherLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                          </button>
+                        </form>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+
+                      {/* AI Ritucharya Advice Section */}
+                      <div className="pt-4 space-y-3">
+                        <div className="flex items-center space-x-2 text-xs font-bold text-primary-850 uppercase tracking-widest">
+                          <Sparkles className="w-4 h-4 text-gold-600 animate-pulse" />
+                          <span>PrakritiAI Dynamic Weather Guideline</span>
+                        </div>
+                        
+                        {weatherLoading ? (
+                          <div className="flex items-center space-x-2.5 py-3 text-xs text-slate-500">
+                            <Loader2 className="w-4 h-4 animate-spin text-primary-600" />
+                            <span>Consulting PrakritiAI weather advisor...</span>
+                          </div>
+                        ) : weatherAiAdvice ? (
+                          <div className="space-y-3.5">
+                            <div className="bg-white/80 rounded-xl p-3.5 border border-primary-200/40 text-xs font-semibold text-slate-700 leading-relaxed">
+                              {weatherAiAdvice.summary}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-white/50 border border-primary-200/30 rounded-xl p-3">
+                                <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">AGGRAVATION WARNING</span>
+                                <span className="text-xs font-extrabold text-red-700 flex items-center">
+                                  <AlertCircle className="w-3.5 h-3.5 mr-1" /> {weatherAiAdvice.imbalanceRisk}
+                                </span>
+                              </div>
+                              <div className="bg-white/50 border border-primary-200/30 rounded-xl p-3">
+                                <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">WEATHER-ADAPTED MORNING TASK</span>
+                                <span className="text-xs font-bold text-primary-850 flex items-center">
+                                  <Flame className="w-3.5 h-3.5 mr-1 text-gold-600" /> {weatherAiAdvice.suggestedMorningTask}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="bg-primary-800 text-white rounded-xl p-4 text-xs leading-relaxed font-semibold">
+                              <span className="block font-bold text-[10px] text-gold-400 uppercase tracking-widest mb-1.5">AYURVEDIC RITUCHARYA RECIPE</span>
+                              {weatherAiAdvice.aiAdvice}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 italic">No advice loaded. Check connection.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dinacharya Checklist Widget */}
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div className="flex items-center space-x-2">
+                          <ListTodo className="w-5 h-5 text-primary-600" />
+                          <h3 className="font-display font-extrabold text-lg text-slate-800">Dinacharya (Morning Healthy Checklist)</h3>
+                        </div>
+                        <div className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                          Today: {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </div>
+                      </div>
+
+                      {/* Gamified Progress Bar */}
+                      <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="w-full sm:w-2/3 space-y-1.5">
+                          <div className="flex justify-between text-xs font-bold text-slate-600">
+                            <span>Morning Rituals Completed</span>
+                            <span className="text-primary-700">{completionPercentage}%</span>
+                          </div>
+                          <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden relative shadow-inner">
+                            <div 
+                              className="h-full bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-500 rounded-full transition-all duration-500 shadow-md"
+                              style={{ width: `${completionPercentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="text-center sm:text-right">
+                          {completionPercentage === 100 ? (
+                            <span className="inline-flex items-center space-x-1 bg-green-100 text-green-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full shadow border border-green-200 glow-green">
+                              <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                              <span>Sama Dosha Achieved!</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-bold">
+                              {completedTasks.length} of {DINACHARYA_TASKS.length} completed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Task items grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {DINACHARYA_TASKS.map((task) => {
+                          const isDone = completedTasks.includes(task.id);
+                          return (
+                            <div 
+                              key={task.id}
+                              onClick={() => toggleTask(task.id)}
+                              className={`p-4 border rounded-2xl cursor-pointer transition duration-200 flex items-start space-x-3.5 hover:shadow-md select-none ${
+                                isDone 
+                                  ? 'bg-primary-50/40 border-primary-200/80 shadow-inner' 
+                                  : 'bg-white border-slate-100 hover:border-primary-100'
+                              }`}
+                            >
+                              <div className="mt-0.5">
+                                {isDone ? (
+                                  <CheckSquare className="w-5 h-5 text-primary-600 fill-primary-50" />
+                                ) : (
+                                  <Square className="w-5 h-5 text-slate-300" />
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex justify-between items-center">
+                                  <h4 className={`text-sm font-bold transition ${isDone ? 'text-primary-850 line-through' : 'text-slate-800'}`}>{task.name}</h4>
+                                  <span className="text-[10px] text-gold-600 bg-gold-50 border border-gold-200/40 px-2 py-0.5 rounded font-bold">{task.sanskrit}</span>
+                                </div>
+                                <p className="text-xs text-slate-500">{task.desc}</p>
+                                <div className="text-[10px] text-slate-400 italic">
+                                  <strong className="text-slate-500 font-bold">Benefit:</strong> {task.benefit}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* TAB 2: My Prescriptions */}
+                {activeTab === 'prescriptions' && (
+                  <div className="space-y-4">
+                    {activePrescriptions.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 text-xs">
+                        <FileText className="w-12 h-12 mx-auto text-slate-200 mb-2" />
+                        <span>No active e-prescriptions assigned. Book an appointment to get custom herbal formulas.</span>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {activePrescriptions.map((pres: any) => {
+                          const medicines = JSON.parse(pres.medicines || '[]');
+                          return (
+                            <div key={pres.id} className="py-5 flex flex-col sm:flex-row justify-between items-start gap-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className="p-1 bg-primary-100 text-primary-800 rounded-lg"><FileText className="w-4 h-4" /></span>
+                                  <h4 className="font-bold text-slate-800 text-sm">Formulated by Dr. {pres.doctor?.user?.name}</h4>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Assigned: {new Date(pres.assignedAt).toLocaleDateString()}</span>
+                                <div className="mt-4 space-y-2 pl-6 border-l-2 border-primary-100">
+                                  {medicines.map((med: any, idx: number) => (
+                                    <div key={idx} className="text-xs font-semibold text-slate-600">
+                                      • <strong className="text-primary-850">{med.name}</strong> - {med.dosage} ({med.frequency}, Anupana: {med.anupana})
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => alert(`Downloading PDF copy: ${pres.pdfUrl}`)}
+                                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 rounded-lg cursor-pointer bg-white"
+                              >
+                                Download PDF
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 3: Lab Analysis & Reports */}
+                {activeTab === 'records' && (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-display font-bold text-sm text-slate-800 uppercase tracking-wider">Analyzed Lab Reports</h4>
+                      <Link 
+                        href="/patient/analyzer"
+                        className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-xs transition cursor-pointer flex items-center shadow-md glow-green"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" /> New Analysis
+                      </Link>
+                    </div>
+
+                    {reports.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 text-xs">
+                        <FileText className="w-12 h-12 mx-auto text-slate-200 mb-2" />
+                        <span>No uploaded clinical reports. Upload PDFs to extract Ayurvedic indices.</span>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {reports.map((rep: any) => (
+                          <div key={rep.id} className="p-4 border border-slate-100 hover:border-primary-100 hover:shadow-md transition rounded-2xl bg-white flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center justify-between border-b border-slate-50 pb-2 mb-3">
+                                <span className="text-xs font-bold text-slate-800 truncate pr-2">{rep.fileName}</span>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                  rep.overallHealthStatus === 'Optimal' 
+                                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}>{rep.overallHealthStatus || 'Analyzed'}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">
+                                {rep.summary || 'Clinical details processed.'}
+                              </p>
+                              <span className="text-[9px] text-slate-400 font-semibold mt-3 block">Uploaded: {new Date(rep.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-end space-x-2">
+                              <Link 
+                                href={`/patient/analyzer?reportId=${rep.id}`}
+                                className="px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition"
+                              >
+                                View Details
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </div>
             </div>
 
           </div>
 
-          {/* Right Column: Sidebar blocks (4 cols) */}
+          {/* Right Column: Sidebar modules (4 cols) */}
           <div className="lg:col-span-4 space-y-8">
             
-            {/* Dosha Quiz Card */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm text-center">
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-3">Prakriti Constitution</span>
-              <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4 text-primary-700">
-                <Heart className="w-8 h-8 fill-primary-50" />
+            {/* Compact Dosha Profile Status Card */}
+            <div className="bg-gradient-to-tr from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary-600/20 rounded-full filter blur-xl"></div>
+              
+              <div className="flex items-center space-x-3.5 mb-4">
+                <div className="p-2.5 bg-primary-950/60 border border-primary-800/40 text-primary-400 rounded-xl">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Prakriti Status</span>
+                  <span className="text-sm font-bold text-slate-100">Ayurvedic Constitution</span>
+                </div>
               </div>
 
               {records?.profile?.doshaType || (records?.pastConsultations && records.pastConsultations[0]?.patient?.doshaType) ? (
-                <div>
-                  <h4 className="font-display font-extrabold text-2xl text-primary-850 tracking-wide">
-                    {records?.profile?.doshaType || records.pastConsultations[0].patient.doshaType} DOMINANT
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Your constitution has been mapped. Doctors can consult this profile instantly for personalized treatment plans.
-                  </p>
-                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                <div className="space-y-4">
+                  <div className="bg-primary-950/50 border border-primary-900/60 rounded-2xl p-4 text-center">
+                    <span className="text-[10px] text-gold-400 font-extrabold uppercase tracking-wider block mb-1">Dominant Energy</span>
+                    <h4 className="font-display font-extrabold text-xl text-primary-400 tracking-wide">
+                      {records?.profile?.doshaType || records.pastConsultations[0].patient.doshaType}
+                    </h4>
+                  </div>
+                  <div className="space-y-2">
                     <Link
                       href={`/patient/remedies?dosha=${(records?.profile?.doshaType || '').split('_')[0]}`}
-                      className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg block transition cursor-pointer"
+                      className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl text-center block transition cursor-pointer"
                     >
-                      Browse {(records?.profile?.doshaType || '').split('_')[0]} Herbs
+                      Browse Remedies
                     </Link>
                     <Link
                       href="/patient/quiz"
-                      className="text-[11px] font-bold text-primary-600 hover:text-primary-700 underline block cursor-pointer pt-1"
+                      className="text-[10px] font-bold text-slate-400 hover:text-slate-200 text-center block cursor-pointer"
                     >
-                      Retake Prakriti Assessment Quiz
+                      Retake Prakriti Quiz
                     </Link>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <h4 className="font-display font-bold text-slate-800 text-lg">Prakriti Unassessed</h4>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    Map your Vata, Pitta, and Kapha dominance to personalize your treatment plans.
+                <div className="space-y-3 text-center pt-2">
+                  <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                    You haven't assessed your Prakriti balance yet. Map your constitutional Doshas to customize consultations.
                   </p>
                   <Link
                     href="/patient/quiz"
-                    className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-xs mt-5 block shadow cursor-pointer transition"
+                    className="w-full py-2.5 bg-gold-600 hover:bg-gold-700 text-primary-950 text-xs font-extrabold rounded-xl text-center block transition cursor-pointer shadow-md glow-gold"
                   >
-                    Take Prakriti Assessment Quiz
+                    Assess My Dosha
                   </Link>
                 </div>
               )}
             </div>
 
             {/* Wellness Log Tracker Widget */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-              <div className="border-b border-slate-100 pb-3 mb-4">
-                <h3 className="font-display font-bold text-sm text-slate-800 uppercase tracking-wider text-center">Daily Wellness Log</h3>
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+              <div className="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+                <h3 className="font-display font-bold text-xs text-slate-600 uppercase tracking-widest">Daily Wellness Log</h3>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               </div>
 
               {trackerSuccess && (
@@ -306,7 +748,7 @@ export default function PatientDashboard() {
                       id="mood-inp"
                       value={mood}
                       onChange={(e) => setMood(e.target.value)}
-                      className="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs bg-white"
+                      className="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
                     >
                       <option value="Joyful">Joyful</option>
                       <option value="Good">Good</option>
@@ -320,7 +762,7 @@ export default function PatientDashboard() {
                       id="digestion-inp"
                       value={digestion}
                       onChange={(e) => setDigestion(e.target.value)}
-                      className="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs bg-white"
+                      className="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs bg-white focus:ring-2 focus:ring-primary-600 focus:outline-none"
                     >
                       <option value="Strong">Strong</option>
                       <option value="Normal">Normal</option>
@@ -333,7 +775,7 @@ export default function PatientDashboard() {
                 <button
                   type="submit"
                   disabled={trackerLoading}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs transition cursor-pointer flex items-center justify-center disabled:opacity-50"
+                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-950 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center disabled:opacity-50"
                 >
                   {trackerLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                   Submit Daily Log
