@@ -7,7 +7,7 @@ import {
   Loader2, Calendar, Clock, Video, Heart, AlertCircle, FileText, Plus, BookOpen, 
   Smile, Droplet, Coffee, Activity, Cloud, Sun, CloudRain, Wind, ShieldCheck, 
   Search, RefreshCw, CheckCircle2, ChevronRight, Sparkles, CheckSquare, Square, 
-  Flame, ListTodo
+  Flame, ListTodo, MapPin, Award
 } from 'lucide-react';
 
 interface DinacharyaTask {
@@ -16,43 +16,92 @@ interface DinacharyaTask {
   sanskrit: string;
   desc: string;
   benefit: string;
+  period: 'morning' | 'afternoon' | 'evening';
 }
 
 const DINACHARYA_TASKS: DinacharyaTask[] = [
+  // Morning
   {
     id: 'ushapana',
     name: 'Ushapana (Warm Water)',
     sanskrit: 'उषःपान',
     desc: 'Drink 1-2 glasses of warm water on an empty stomach.',
-    benefit: 'Ignites Agni (digestive fire) and flushes out metabolic waste (Ama).'
+    benefit: 'Ignites Agni (digestive fire) and flushes out metabolic waste (Ama).',
+    period: 'morning'
   },
   {
     id: 'jihva',
     name: 'Jihva Nirlekhan (Tongue Scraping)',
     sanskrit: 'जिह्वा निर्लेखन',
     desc: 'Scrape tongue from back to front 7-10 times using copper or steel.',
-    benefit: 'Clears toxic coating, stimulates salivary glands, and alerts internal organs.'
+    benefit: 'Clears toxic coating, stimulates salivary glands, and alerts internal organs.',
+    period: 'morning'
   },
   {
     id: 'gandusha',
     name: 'Gandusha (Oil Pulling)',
     sanskrit: 'गण्डूष',
     desc: 'Swish 1 tbsp of cold-pressed sesame or coconut oil for 5-10 minutes.',
-    benefit: 'Strengthens teeth/gums, brightens skin, and extracts fat-soluble toxins.'
+    benefit: 'Strengthens teeth/gums, brightens skin, and extracts fat-soluble toxins.',
+    period: 'morning'
   },
   {
     id: 'pranayama',
     name: 'Pranayama & Dhyana',
     sanskrit: 'प्राणायाम',
     desc: 'Perform Nadi Shodhana (Alternate Nostril) & 5 mins meditation.',
-    benefit: 'Balances left/right brain hemispheres and calms the nervous system.'
+    benefit: 'Balances left/right brain hemispheres and calms the nervous system.',
+    period: 'morning'
   },
   {
     id: 'abhyanga',
     name: 'Abhyanga (Warm Oil Massage)',
     sanskrit: 'अभ्यङ्ग',
     desc: 'Perform gentle self-massage with warm sesame/coconut oil before bath.',
-    benefit: 'Stimulates circulation, delays aging, and releases muscle fatigue.'
+    benefit: 'Stimulates circulation, delays aging, and releases muscle fatigue.',
+    period: 'morning'
+  },
+  // Afternoon
+  {
+    id: 'shatapadi',
+    name: 'Shatapadi (Post-Meal Walk)',
+    sanskrit: 'शतपदी',
+    desc: 'Take exactly 100 paces gently after having a mindful lunch.',
+    benefit: 'Aids peristalsis, prevents blood sugar spikes, and aligns heavy lunch.',
+    period: 'afternoon'
+  },
+  {
+    id: 'afternoon_hydrate',
+    name: 'CCF Tea (Warm Hydration)',
+    sanskrit: 'उष्ण जल',
+    desc: 'Sip warm Cumin-Coriander-Fennel tea to aid mid-day heat.',
+    benefit: 'Balances Pitta metabolic energy and prevents afternoon bloating.',
+    period: 'afternoon'
+  },
+  // Evening/Night
+  {
+    id: 'light_dinner',
+    name: 'Laghu Ahar (Light Dinner)',
+    sanskrit: 'लघु आहार',
+    desc: 'Consume a freshly cooked warm light dinner before 8:00 PM.',
+    benefit: 'Allows the liver and intestines to detoxify properly overnight.',
+    period: 'evening'
+  },
+  {
+    id: 'triphala',
+    name: 'Triphala / Turmeric Milk',
+    sanskrit: 'त्रिफला / हरिद्रा क्षीर',
+    desc: 'Take 1/2 tsp Triphala churna with warm water or drink warm golden milk.',
+    benefit: 'Regulates bowel movements and serves as a powerful antioxidant.',
+    period: 'evening'
+  },
+  {
+    id: 'digital_detox',
+    name: 'Digital Detox',
+    sanskrit: 'निद्रा पूर्व ध्यान',
+    desc: 'Shut down all screens (phone, laptop) 1 hour before sleep.',
+    benefit: 'Increases natural melatonin production and calms active brain state.',
+    period: 'evening'
   }
 ];
 
@@ -97,9 +146,18 @@ export default function PatientDashboard() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [citySearchInput, setCitySearchInput] = useState('');
 
-  // Checklist Tasks state
+  // Checklist Tasks & Streak state
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
+  const [streakCount, setStreakCount] = useState(0);
+  const [selectedTaskPeriod, setSelectedTaskPeriod] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
+  
   const todayStr = new Date().toISOString().split('T')[0];
+
+  const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  };
 
   const fetchData = async () => {
     try {
@@ -130,7 +188,89 @@ export default function PatientDashboard() {
     }
   };
 
-  // Weather and Weather AI Fetching
+  // Precise Geolocation-Based Weather Fetching
+  const detectLocationAndWeather = () => {
+    if (!navigator.geolocation) {
+      fetchWeatherAndAiAdvice(city);
+      return;
+    }
+    
+    setWeatherLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // 1. Reverse Geocode City via Nominatim (OSM)
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { 'User-Agent': 'VedaSync-AI-App' } }
+          );
+          
+          let detectedCity = 'My Location';
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            detectedCity = geoData.address.city || geoData.address.town || geoData.address.suburb || geoData.address.state || 'My Location';
+          }
+          
+          setCity(detectedCity);
+          setCitySearchInput(detectedCity);
+          localStorage.setItem('vedasync_city', detectedCity);
+          
+          // 2. Fetch current weather from Open-Meteo
+          const weatherRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`
+          );
+          
+          let temp = 25;
+          let humidity = 60;
+          let wCode = 0;
+          let windSpeed = 10;
+
+          if (weatherRes.ok) {
+            const data = await weatherRes.json();
+            temp = Math.round(data.current?.temperature_2m ?? 25);
+            humidity = Math.round(data.current?.relative_humidity_2m ?? 60);
+            wCode = data.current?.weather_code ?? 0;
+            windSpeed = Math.round(data.current?.wind_speed_10m ?? 10);
+            
+            setWeatherData({ temp, humidity, wCode, windSpeed, city: detectedCity });
+          }
+
+          // Weather condition string
+          let condition = 'Clear Sky';
+          if (wCode >= 1 && wCode <= 3) condition = 'Partly Cloudy';
+          else if (wCode >= 45 && wCode <= 48) condition = 'Foggy';
+          else if (wCode >= 51 && wCode <= 67) condition = 'Rainy';
+          else if (wCode >= 80 && wCode <= 82) condition = 'Rain Showers';
+          else if (wCode >= 95) condition = 'Thunderstorm';
+
+          // Call weather AI
+          const aiRes = await fetch('/api/patient/weather-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ temp, humidity, condition, city: detectedCity })
+          });
+
+          if (aiRes.ok) {
+            const json = await aiRes.json();
+            if (json.success && json.data) {
+              setWeatherAiAdvice(json.data);
+            }
+          }
+        } catch (err) {
+          console.error('Error Reverse Geocoding / Weather AI fetch:', err);
+        } finally {
+          setWeatherLoading(false);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation access failed. Falling back to default:', err);
+        fetchWeatherAndAiAdvice(city);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const fetchWeatherAndAiAdvice = async (targetCity: string) => {
     setWeatherLoading(true);
     try {
@@ -148,18 +288,16 @@ export default function PatientDashboard() {
 
       if (weatherRes.ok) {
         const data = await weatherRes.json();
-        temp = Math.round(data.current?.temperature_2m || 25);
-        humidity = Math.round(data.current?.relative_humidity_2m || 60);
-        wCode = data.current?.weather_code || 0;
-        windSpeed = Math.round(data.current?.wind_speed_10m || 10);
+        temp = Math.round(data.current?.temperature_2m ?? 25);
+        humidity = Math.round(data.current?.relative_humidity_2m ?? 60);
+        wCode = data.current?.weather_code ?? 0;
+        windSpeed = Math.round(data.current?.wind_speed_10m ?? 10);
         
         setWeatherData({ temp, humidity, wCode, windSpeed, city: targetCity });
       } else {
-        // Fallback mock weather data
         setWeatherData({ temp, humidity, wCode, windSpeed, city: targetCity });
       }
 
-      // Weather condition string
       let condition = 'Clear Sky';
       if (wCode >= 1 && wCode <= 3) condition = 'Partly Cloudy';
       else if (wCode >= 45 && wCode <= 48) condition = 'Foggy';
@@ -167,7 +305,6 @@ export default function PatientDashboard() {
       else if (wCode >= 80 && wCode <= 82) condition = 'Rain Showers';
       else if (wCode >= 95) condition = 'Thunderstorm';
 
-      // Call our weather AI api route
       const aiRes = await fetch('/api/patient/weather-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,7 +318,7 @@ export default function PatientDashboard() {
         }
       }
     } catch (err) {
-      console.error('Error loading weather data/AI:', err);
+      console.error('Error fetching weather data / Weather AI:', err);
     } finally {
       setWeatherLoading(false);
     }
@@ -190,17 +327,32 @@ export default function PatientDashboard() {
   useEffect(() => {
     fetchData();
     
-    // Load city from storage or fallback
+    // Check local storage for city
     const storedCity = localStorage.getItem('vedasync_city') || 'New Delhi';
     setCity(storedCity);
     setCitySearchInput(storedCity);
-    fetchWeatherAndAiAdvice(storedCity);
 
-    // Load completed morning checklist tasks
+    // Initial weather loads (Attempts browser geolocation first)
+    detectLocationAndWeather();
+
+    // Load completed tasks
     const storedTasksKey = `vedasync_tasks_${todayStr}`;
     const storedTasks = localStorage.getItem(storedTasksKey);
     if (storedTasks) {
       setCompletedTasks(JSON.parse(storedTasks));
+    }
+
+    // Streak Check on Load
+    const streakCountVal = parseInt(localStorage.getItem('vedasync_streak_count') || '0', 10);
+    const lastDate = localStorage.getItem('vedasync_streak_last_date') || '';
+    const yesterdayStr = getYesterdayStr();
+
+    if (lastDate && lastDate !== todayStr && lastDate !== yesterdayStr) {
+      // Streak broken!
+      setStreakCount(0);
+      localStorage.setItem('vedasync_streak_count', '0');
+    } else {
+      setStreakCount(streakCountVal);
     }
   }, []);
 
@@ -215,13 +367,32 @@ export default function PatientDashboard() {
   const toggleTask = (taskId: string) => {
     const isCompleted = completedTasks.includes(taskId);
     let newCompleted: string[];
+    
     if (isCompleted) {
       newCompleted = completedTasks.filter(id => id !== taskId);
     } else {
       newCompleted = [...completedTasks, taskId];
     }
+    
     setCompletedTasks(newCompleted);
     localStorage.setItem(`vedasync_tasks_${todayStr}`, JSON.stringify(newCompleted));
+
+    // Handle Streak Progress: if they complete all 10 tasks, increase streak!
+    const allCompletedNow = DINACHARYA_TASKS.every(task => newCompleted.includes(task.id));
+    if (allCompletedNow) {
+      const lastDate = localStorage.getItem('vedasync_streak_last_date') || '';
+      const yesterdayStr = getYesterdayStr();
+
+      if (lastDate !== todayStr) {
+        let newStreak = 1;
+        if (lastDate === yesterdayStr) {
+          newStreak = streakCount + 1;
+        }
+        setStreakCount(newStreak);
+        localStorage.setItem('vedasync_streak_count', newStreak.toString());
+        localStorage.setItem('vedasync_streak_last_date', todayStr);
+      }
+    }
   };
 
   const handleWellnessSubmit = async (e: React.FormEvent) => {
@@ -248,7 +419,7 @@ export default function PatientDashboard() {
     }
   };
 
-  // Find the next upcoming confirmed appointment that has not expired
+  // Find next upcoming confirmed active appointment
   const nextAppt = appointments.find((appt) => {
     if (appt.status !== 'CONFIRMED') return false;
     const scheduledTime = new Date(appt.scheduledAt).getTime();
@@ -267,7 +438,12 @@ export default function PatientDashboard() {
     return <Sun className="w-8 h-8 text-amber-500" />;
   };
 
-  // Checklist Completion Stats
+  // Tasks display filters
+  const filteredTasks = DINACHARYA_TASKS.filter(task => {
+    if (selectedTaskPeriod === 'all') return true;
+    return task.period === selectedTaskPeriod;
+  });
+
   const completionPercentage = Math.round((completedTasks.length / DINACHARYA_TASKS.length) * 100);
 
   return (
@@ -276,7 +452,7 @@ export default function PatientDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-wide text-slate-800">My Health Space</h1>
-          <p className="text-slate-500 text-sm mt-1">Hello, {user?.name}. Syncing your daily wellness routine and schedules.</p>
+          <p className="text-slate-500 text-sm mt-1">Hello, {user?.name}. Your dynamic weather-aware Ayurvedic routine.</p>
         </div>
         <Link
           href="/patient/doctors"
@@ -297,7 +473,7 @@ export default function PatientDashboard() {
           {/* Left Column: Primary workspace (8 cols) */}
           <div className="lg:col-span-8 space-y-8">
             
-            {/* Upcoming Consult Link Banner (Shows only if confirmed and not expired) */}
+            {/* Upcoming Consult Link Banner */}
             {nextAppt && (
               <div className="bg-gradient-to-r from-primary-800 to-primary-700 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative overflow-hidden glow-green">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary-600 rounded-full opacity-20 filter blur-3xl"></div>
@@ -340,22 +516,22 @@ export default function PatientDashboard() {
 
             {/* Premium Tabbed Navigation Panel */}
             <div className="bg-white border border-slate-100 rounded-3xl shadow-xl overflow-hidden">
-              <div className="bg-slate-50 p-2.5 border-b border-slate-100 flex items-center space-x-1">
+              <div className="bg-slate-50 p-2.5 border-b border-slate-100 flex items-center space-x-1 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('wellness')}
-                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer ${
+                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
                     activeTab === 'wellness'
                       ? 'bg-white text-primary-700 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <Flame className="w-4 h-4 text-gold-600" />
-                  <span>Today's Vedic Space</span>
+                  <span>Daily Dinacharya Space</span>
                 </button>
                 
                 <button
                   onClick={() => setActiveTab('prescriptions')}
-                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer ${
+                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
                     activeTab === 'prescriptions'
                       ? 'bg-white text-primary-700 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
@@ -367,7 +543,7 @@ export default function PatientDashboard() {
 
                 <button
                   onClick={() => setActiveTab('records')}
-                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer ${
+                  className={`px-5 py-2.5 text-xs font-extrabold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer whitespace-nowrap ${
                     activeTab === 'records'
                       ? 'bg-white text-primary-700 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
@@ -381,14 +557,14 @@ export default function PatientDashboard() {
               {/* Tab Contents */}
               <div className="p-6">
                 
-                {/* TAB 1: Today's Vedic Space (Weather AI + Dinacharya) */}
+                {/* TAB 1: Daily Dinacharya Space (Weather AI + Dinacharya Tracker) */}
                 {activeTab === 'wellness' && (
                   <div className="space-y-8">
                     
                     {/* Weather AI Advisor Widget */}
                     <div className="bg-gradient-to-br from-primary-50/50 to-primary-100/50 border border-primary-200/50 rounded-2xl p-6 relative overflow-hidden">
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-4 border-b border-primary-200/30">
-                        {/* Dynamic weather readings */}
+                        {/* Weather readings */}
                         <div className="flex items-center space-x-4">
                           <div className="p-3 bg-white rounded-2xl shadow-md border border-primary-100 flex items-center justify-center">
                             {weatherData ? getWeatherIcon(weatherData.wCode) : <Sun className="w-8 h-8 text-amber-500 animate-spin" />}
@@ -396,40 +572,53 @@ export default function PatientDashboard() {
                           <div>
                             <div className="flex items-center space-x-2.5">
                               <span className="text-2xl font-black text-slate-800">{weatherData ? `${weatherData.temp}°C` : '...'}</span>
-                              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest bg-white/70 px-2 py-0.5 rounded border border-slate-100">{city}</span>
+                              <span className="text-xs text-slate-450 font-bold uppercase tracking-widest bg-white/80 px-2.5 py-0.5 rounded border border-slate-200 flex items-center">
+                                <MapPin className="w-3.5 h-3.5 mr-1 text-primary-600" /> {city}
+                              </span>
                             </div>
-                            <div className="flex items-center space-x-3 text-xs text-slate-500 mt-0.5 font-semibold">
+                            <div className="flex items-center space-x-3 text-xs text-slate-505 mt-0.5 font-semibold">
                               <span className="flex items-center"><Droplet className="w-3.5 h-3.5 mr-1 text-primary-600" /> Hum: {weatherData ? `${weatherData.humidity}%` : '...'}</span>
                               <span className="flex items-center"><Wind className="w-3.5 h-3.5 mr-1 text-sky-500" /> Wind: {weatherData ? `${weatherData.windSpeed} km/h` : '...'}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Search City */}
-                        <form onSubmit={handleCitySearchSubmit} className="flex items-center space-x-1.5 w-full md:w-auto">
-                          <div className="relative flex-grow md:flex-grow-0">
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                              type="text"
-                              value={citySearchInput}
-                              onChange={(e) => setCitySearchInput(e.target.value)}
-                              placeholder="Type city..."
-                              className="pl-9 pr-3 py-1.5 w-full md:w-40 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-600"
-                            />
-                          </div>
+                        {/* Location controls */}
+                        <div className="flex items-center space-x-1.5 w-full md:w-auto">
+                          <form onSubmit={handleCitySearchSubmit} className="flex items-center space-x-1.5 flex-grow md:flex-grow-0">
+                            <div className="relative flex-grow">
+                              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                value={citySearchInput}
+                                onChange={(e) => setCitySearchInput(e.target.value)}
+                                placeholder="Search city..."
+                                className="pl-9 pr-3 py-1.5 w-full md:w-36 rounded-lg border border-slate-200 bg-white text-xs text-slate-805 focus:outline-none focus:ring-2 focus:ring-primary-600"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold cursor-pointer"
+                            >
+                              Search
+                            </button>
+                          </form>
+                          
                           <button
-                            type="submit"
+                            type="button"
+                            onClick={detectLocationAndWeather}
                             disabled={weatherLoading}
-                            className="p-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs cursor-pointer shadow flex items-center justify-center"
+                            className="p-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs cursor-pointer shadow flex items-center justify-center glow-green"
+                            title="Detect Live GPS Location"
                           >
-                            {weatherLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                            {weatherLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
                           </button>
-                        </form>
+                        </div>
                       </div>
 
-                      {/* AI Ritucharya Advice Section */}
+                      {/* AI weather analysis */}
                       <div className="pt-4 space-y-3">
-                        <div className="flex items-center space-x-2 text-xs font-bold text-primary-850 uppercase tracking-widest">
+                        <div className="flex items-center space-x-2 text-xs font-bold text-primary-855 uppercase tracking-widest">
                           <Sparkles className="w-4 h-4 text-gold-600 animate-pulse" />
                           <span>PrakritiAI Dynamic Weather Guideline</span>
                         </div>
@@ -437,55 +626,58 @@ export default function PatientDashboard() {
                         {weatherLoading ? (
                           <div className="flex items-center space-x-2.5 py-3 text-xs text-slate-500">
                             <Loader2 className="w-4 h-4 animate-spin text-primary-600" />
-                            <span>Consulting PrakritiAI weather advisor...</span>
+                            <span>Consulting GPS location sensor and weather engine...</span>
                           </div>
                         ) : weatherAiAdvice ? (
-                          <div className="space-y-3.5">
-                            <div className="bg-white/80 rounded-xl p-3.5 border border-primary-200/40 text-xs font-semibold text-slate-700 leading-relaxed">
+                          <div className="space-y-3.5 animate-fadeIn">
+                            <div className="bg-white/80 rounded-xl p-3.5 border border-primary-200/40 text-xs font-semibold text-slate-700 leading-relaxed shadow-sm">
                               {weatherAiAdvice.summary}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="bg-white/50 border border-primary-200/30 rounded-xl p-3">
+                              <div className="bg-white/50 border border-primary-200/30 rounded-xl p-3 shadow-inner">
                                 <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">AGGRAVATION WARNING</span>
                                 <span className="text-xs font-extrabold text-red-700 flex items-center">
                                   <AlertCircle className="w-3.5 h-3.5 mr-1" /> {weatherAiAdvice.imbalanceRisk}
                                 </span>
                               </div>
-                              <div className="bg-white/50 border border-primary-200/30 rounded-xl p-3">
+                              <div className="bg-white/50 border border-primary-200/30 rounded-xl p-3 shadow-inner">
                                 <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">WEATHER-ADAPTED MORNING TASK</span>
                                 <span className="text-xs font-bold text-primary-850 flex items-center">
                                   <Flame className="w-3.5 h-3.5 mr-1 text-gold-600" /> {weatherAiAdvice.suggestedMorningTask}
                                 </span>
                               </div>
                             </div>
-                            <div className="bg-primary-800 text-white rounded-xl p-4 text-xs leading-relaxed font-semibold">
+                            <div className="bg-primary-800 text-white rounded-xl p-4 text-xs leading-relaxed font-semibold shadow-md">
                               <span className="block font-bold text-[10px] text-gold-400 uppercase tracking-widest mb-1.5">AYURVEDIC RITUCHARYA RECIPE</span>
                               {weatherAiAdvice.aiAdvice}
                             </div>
                           </div>
                         ) : (
-                          <div className="text-xs text-slate-400 italic">No advice loaded. Check connection.</div>
+                          <div className="text-xs text-slate-400 italic">No advice loaded. Check location access or connectivity.</div>
                         )}
                       </div>
                     </div>
 
-                    {/* Dinacharya Checklist Widget */}
-                    <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    {/* Dinacharya Checklist with tabs for morning/afternoon/evening and Streak count */}
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center space-x-2">
                           <ListTodo className="w-5 h-5 text-primary-600" />
-                          <h3 className="font-display font-extrabold text-lg text-slate-800">Dinacharya (Morning Healthy Checklist)</h3>
+                          <h3 className="font-display font-extrabold text-lg text-slate-805">Vedic Dinacharya (Complete Checklist)</h3>
                         </div>
-                        <div className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                          Today: {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        
+                        {/* Streak Tracker Display */}
+                        <div className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-amber-500 text-white px-4 py-1.5 rounded-full shadow-md animate-pulse">
+                          <Flame className="w-4 h-4 fill-white text-white" />
+                          <span className="text-xs font-black uppercase tracking-wider">STREAK: {streakCount} DAYS</span>
                         </div>
                       </div>
 
-                      {/* Gamified Progress Bar */}
+                      {/* Global Progress Bar */}
                       <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="w-full sm:w-2/3 space-y-1.5">
                           <div className="flex justify-between text-xs font-bold text-slate-600">
-                            <span>Morning Rituals Completed</span>
+                            <span>Today's Total Vedic Goals Completed</span>
                             <span className="text-primary-700">{completionPercentage}%</span>
                           </div>
                           <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden relative shadow-inner">
@@ -495,23 +687,60 @@ export default function PatientDashboard() {
                             ></div>
                           </div>
                         </div>
+                        
                         <div className="text-center sm:text-right">
                           {completionPercentage === 100 ? (
                             <span className="inline-flex items-center space-x-1 bg-green-100 text-green-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full shadow border border-green-200 glow-green">
-                              <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                              <span>Sama Dosha Achieved!</span>
+                              <Award className="w-4 h-4 animate-bounce" />
+                              <span>Streak Advanced! (+1 Day)</span>
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400 font-bold">
-                              {completedTasks.length} of {DINACHARYA_TASKS.length} completed
+                            <span className="text-xs text-slate-405 font-bold">
+                              {completedTasks.length} of {DINACHARYA_TASKS.length} done
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Task items grid */}
+                      {/* Period Filter Tabs */}
+                      <div className="flex items-center space-x-1.5 bg-slate-105 p-1 rounded-xl w-fit">
+                        <button
+                          onClick={() => setSelectedTaskPeriod('all')}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
+                            selectedTaskPeriod === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          All ({DINACHARYA_TASKS.length})
+                        </button>
+                        <button
+                          onClick={() => setSelectedTaskPeriod('morning')}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
+                            selectedTaskPeriod === 'morning' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          Morning (Pratah)
+                        </button>
+                        <button
+                          onClick={() => setSelectedTaskPeriod('afternoon')}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
+                            selectedTaskPeriod === 'afternoon' ? 'bg-white text-slate-805 shadow-sm' : 'text-slate-505 hover:text-slate-800'
+                          }`}
+                        >
+                          Afternoon (Madhyahna)
+                        </button>
+                        <button
+                          onClick={() => setSelectedTaskPeriod('evening')}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
+                            selectedTaskPeriod === 'evening' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-550 hover:text-slate-800'
+                          }`}
+                        >
+                          Evening (Sayam)
+                        </button>
+                      </div>
+
+                      {/* Task items list */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {DINACHARYA_TASKS.map((task) => {
+                        {filteredTasks.map((task) => {
                           const isDone = completedTasks.includes(task.id);
                           return (
                             <div 
@@ -532,11 +761,11 @@ export default function PatientDashboard() {
                               </div>
                               <div className="flex-1 space-y-1">
                                 <div className="flex justify-between items-center">
-                                  <h4 className={`text-sm font-bold transition ${isDone ? 'text-primary-850 line-through' : 'text-slate-800'}`}>{task.name}</h4>
-                                  <span className="text-[10px] text-gold-600 bg-gold-50 border border-gold-200/40 px-2 py-0.5 rounded font-bold">{task.sanskrit}</span>
+                                  <h4 className={`text-sm font-bold transition ${isDone ? 'text-primary-850 line-through' : 'text-slate-805'}`}>{task.name}</h4>
+                                  <span className="text-[10px] text-gold-650 bg-gold-50 border border-gold-200/40 px-2 py-0.5 rounded font-bold">{task.sanskrit}</span>
                                 </div>
-                                <p className="text-xs text-slate-500">{task.desc}</p>
-                                <div className="text-[10px] text-slate-400 italic">
+                                <p className="text-xs text-slate-500 leading-relaxed">{task.desc}</p>
+                                <div className="text-[10px] text-slate-400 italic mt-1 block">
                                   <strong className="text-slate-500 font-bold">Benefit:</strong> {task.benefit}
                                 </div>
                               </div>
@@ -554,11 +783,11 @@ export default function PatientDashboard() {
                   <div className="space-y-4">
                     {activePrescriptions.length === 0 ? (
                       <div className="text-center py-12 text-slate-400 text-xs">
-                        <FileText className="w-12 h-12 mx-auto text-slate-200 mb-2" />
+                        <FileText className="w-12 h-12 mx-auto text-slate-205 mb-2" />
                         <span>No active e-prescriptions assigned. Book an appointment to get custom herbal formulas.</span>
                       </div>
                     ) : (
-                      <div className="divide-y divide-slate-100">
+                      <div className="divide-y divide-slate-105">
                         {activePrescriptions.map((pres: any) => {
                           const medicines = JSON.parse(pres.medicines || '[]');
                           return (
@@ -579,7 +808,7 @@ export default function PatientDashboard() {
                               </div>
                               <button
                                 onClick={() => alert(`Downloading PDF copy: ${pres.pdfUrl}`)}
-                                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 rounded-lg cursor-pointer bg-white"
+                                className="px-4 py-2 border border-slate-200 hover:bg-slate-55 text-xs font-semibold text-slate-700 rounded-lg cursor-pointer bg-white"
                               >
                                 Download PDF
                               </button>
@@ -605,7 +834,7 @@ export default function PatientDashboard() {
                     </div>
 
                     {reports.length === 0 ? (
-                      <div className="text-center py-12 text-slate-400 text-xs">
+                      <div className="text-center py-12 text-slate-450 text-xs">
                         <FileText className="w-12 h-12 mx-auto text-slate-200 mb-2" />
                         <span>No uploaded clinical reports. Upload PDFs to extract Ayurvedic indices.</span>
                       </div>
@@ -630,7 +859,7 @@ export default function PatientDashboard() {
                             <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-end space-x-2">
                               <Link 
                                 href={`/patient/analyzer?reportId=${rep.id}`}
-                                className="px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition"
+                                className="px-3 py-1 bg-slate-55 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition"
                               >
                                 View Details
                               </Link>
@@ -675,7 +904,7 @@ export default function PatientDashboard() {
                   <div className="space-y-2">
                     <Link
                       href={`/patient/remedies?dosha=${(records?.profile?.doshaType || '').split('_')[0]}`}
-                      className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl text-center block transition cursor-pointer"
+                      className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl text-center block transition cursor-pointer glow-green"
                     >
                       Browse Remedies
                     </Link>
@@ -757,7 +986,7 @@ export default function PatientDashboard() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label htmlFor="digestion-inp" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Digestion</label>
+                    <label htmlFor="digestion-inp" className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Digestion</label>
                     <select
                       id="digestion-inp"
                       value={digestion}
