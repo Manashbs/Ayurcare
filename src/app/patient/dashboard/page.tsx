@@ -105,6 +105,49 @@ const DINACHARYA_TASKS: DinacharyaTask[] = [
   }
 ];
 
+const AYURVEDIC_FACTS = [
+  {
+    title: "Swarna Bhasma's Nanomedicine",
+    fact: "Swarna Bhasma utilizes nanosized gold particles treated with herbal juices. Ancient sages engineered it to cross the blood-brain barrier as a cellular rejuvenator (Rasayana) centuries before modern nanotechnology."
+  },
+  {
+    title: "The Doctrine of Signatures in Brahmi",
+    fact: "Brahmi (Bacopa monnieri) leaves resemble the human brain's cerebellum. Sages used this signature of nature to identify its cognitive-enhancing properties long before modern clinical confirmations."
+  },
+  {
+    title: "Tamra Jal (Copper Charged Water)",
+    fact: "Storing water in a copper vessel for 8+ hours (Tamra Jal) naturally charges it with ionic copper particles. It acts as an organic sanitizer, balances all three Doshas, and stimulates thyroid health."
+  },
+  {
+    title: "Neem: The Village Pharmacy",
+    fact: "Neem is named 'Arishta' in Sanskrit, meaning 'reliever of sickness'. Every single part of the tree (bark, leaves, seeds, root) has distinct antimicrobial values, earning it the title of the 'village pharmacy'."
+  },
+  {
+    title: "Triphala's Perfect Synergistic Ratio",
+    fact: "Triphala is not just a laxative; Haritaki cleanses Vata (colon), Amalaki cools Pitta (liver/blood), and Bibhitaki purges Kapha (respiratory mucus). Together, they form a perfect full-body cellular cleanser."
+  },
+  {
+    title: "Shilajit: Millions of Years in the Making",
+    fact: "Shilajit is not a plant, but compressed humic matter trapped between Himalayan rock strata for millions of years. It contains high amounts of fulvic acid which transports minerals directly into cells."
+  },
+  {
+    title: "Ashwagandha (Smell of the Horse)",
+    fact: "Ashwagandha literally means 'Smell of the Horse' in Sanskrit. Sages named it because it is believed to impart the strength, vitality, and sexual energy of a stallion while calming nervous tension."
+  },
+  {
+    title: "Ghee: The Lipophilic Carrier (Yogavahi)",
+    fact: "Ghee acts as a 'Yogavahi' (catalyst). By binding herbal active components to healthy fats, it allows medicinal properties to penetrate lipid-based cellular membranes that water-soluble items cannot cross."
+  },
+  {
+    title: "The Lost Soma Nectar",
+    fact: "The Rigveda dedicates an entire book to 'Soma', a glowing mountain plant yielding a drink of immortality. While its exact identity is lost to history, it is the world's oldest documented adaptogenic juice."
+  },
+  {
+    title: "Pippali: The King of Metabolic Spices",
+    fact: "Long pepper (Pippali) was the first spice exported from India to Europe. Unlike black pepper, it has a sweet post-digestive effect (Madhura Vipaka), making it unique in treating chronic respiratory congestion."
+  }
+];
+
 const CITY_COORDINATES: Record<string, { lat: number; lon: number }> = {
   'new delhi': { lat: 28.6139, lon: 77.2090 },
   'delhi': { lat: 28.6139, lon: 77.2090 },
@@ -151,6 +194,10 @@ export default function PatientDashboard() {
   const [streakCount, setStreakCount] = useState(0);
   const [selectedTaskPeriod, setSelectedTaskPeriod] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
   
+  // Daily Ayurvedic Fact state
+  const [activeFactIdx, setActiveFactIdx] = useState(0);
+  const [factAnimating, setFactAnimating] = useState(false);
+
   const todayStr = new Date().toISOString().split('T')[0];
 
   const getYesterdayStr = () => {
@@ -354,6 +401,10 @@ export default function PatientDashboard() {
     } else {
       setStreakCount(streakCountVal);
     }
+
+    // Set daily fact based on day of month index
+    const dayOfMonth = new Date().getDate();
+    setActiveFactIdx(dayOfMonth % AYURVEDIC_FACTS.length);
   }, []);
 
   const handleCitySearchSubmit = (e: React.FormEvent) => {
@@ -362,6 +413,14 @@ export default function PatientDashboard() {
     setCity(citySearchInput);
     localStorage.setItem('vedasync_city', citySearchInput);
     fetchWeatherAndAiAdvice(citySearchInput);
+  };
+
+  const handleRevealNextFact = () => {
+    setFactAnimating(true);
+    setTimeout(() => {
+      setActiveFactIdx((prev) => (prev + 1) % AYURVEDIC_FACTS.length);
+      setFactAnimating(false);
+    }, 450);
   };
 
   const toggleTask = (taskId: string) => {
@@ -929,6 +988,34 @@ export default function PatientDashboard() {
                   </Link>
                 </div>
               )}
+            </div>
+
+            {/* VedaSync Daily Secret (Did You Know?) Widget */}
+            <div className="bg-gradient-to-br from-gold-50/60 to-gold-100/40 border border-gold-200/50 rounded-3xl p-6 shadow-md relative overflow-hidden glow-gold">
+              <div className="absolute -top-10 -right-10 w-24 h-24 bg-gold-300/20 rounded-full filter blur-xl"></div>
+              
+              <div className="flex items-center space-x-2.5 text-xs font-bold text-gold-800 uppercase tracking-widest mb-3.5">
+                <Sparkles className="w-4 h-4 text-gold-600 animate-spin" style={{ animationDuration: '6s' }} />
+                <span>Ayurvedic Daily Secret</span>
+              </div>
+
+              <div className={`transition-all duration-300 ${factAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                <h4 className="font-display font-extrabold text-sm text-slate-850 mb-2">
+                  {AYURVEDIC_FACTS[activeFactIdx]?.title}
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  {AYURVEDIC_FACTS[activeFactIdx]?.fact}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRevealNextFact}
+                className="mt-4 pt-3.5 border-t border-gold-200/40 w-full text-left text-[10px] font-extrabold text-gold-700 hover:text-gold-900 transition flex items-center justify-between cursor-pointer"
+              >
+                <span>REVEAL ANOTHER RARE TRUTH</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Wellness Log Tracker Widget */}
