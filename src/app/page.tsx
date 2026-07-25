@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Sparkles, Stethoscope, Heart, Activity, ShieldCheck, ArrowRight, Star, Quote, ChevronRight, CheckCircle2, Play } from 'lucide-react';
+import InteractiveDoshaSphere from '@/components/InteractiveDoshaSphere';
 
 export default function Home() {
   const { user, logout } = useAuth();
@@ -113,7 +114,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="flex-1 max-w-7xl mx-auto py-16 md:py-24 px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Call to Action */}
-        <div className="lg:col-span-7 space-y-8 animate-fadeIn">
+        <div className="lg:col-span-6 space-y-8 animate-fadeIn">
           <div className="inline-flex items-center space-x-2 bg-primary-100/50 border border-primary-200/50 text-primary-700 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide shadow-sm">
             <Sparkles className="w-4 h-4 text-gold-600 animate-spin" style={{ animationDuration: '4s' }} />
             <span>Ayurvedic Precision Medicine Platform</span>
@@ -161,8 +162,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Portal Switching Card */}
-        <div className="lg:col-span-5 flex justify-center">
+        {/* Right interactive column stacking the 3D canvas and portals */}
+        <div className="lg:col-span-6 flex flex-col space-y-8 items-center w-full">
+          <div className="w-full max-w-md">
+            <InteractiveDoshaSphere />
+          </div>
+
           <div className="w-full max-w-md bg-white/80 rounded-3xl shadow-2xl border border-slate-100/80 overflow-hidden p-8 glass-premium glow-green">
             <div className="mb-6 text-center">
               <h3 className="font-display text-2xl font-extrabold text-slate-900 tracking-tight">Access Portals</h3>

@@ -23,8 +23,11 @@ export async function getAiResponse(messages: ChatMessage[], userApiKey?: string
   const latestMessage = messages[messages.length - 1]?.content || '';
   const latestLower = latestMessage.toLowerCase();
 
-  // 1. Triage: Check for emergency indicators
-  const isEmergency = EMERGENCY_KEYWORDS.some(keyword => latestLower.includes(keyword));
+  // 1. Triage: Check for emergency indicators using word boundaries to prevent false positives (like 'die' matching 'remedies')
+  const isEmergency = EMERGENCY_KEYWORDS.some(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    return regex.test(latestLower);
+  });
 
   if (isEmergency) {
     return {
