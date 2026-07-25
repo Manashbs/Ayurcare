@@ -19,9 +19,9 @@ export default function InteractiveDoshaSphere() {
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // Dimensions
-    const width = mountRef.current.clientWidth || 400;
-    const height = mountRef.current.clientHeight || 400;
+    const rect = mountRef.current.getBoundingClientRect();
+    const width = rect.width || 400;
+    const height = rect.height || 320;
 
     // Scene
     const scene = new THREE.Scene();
@@ -234,11 +234,12 @@ export default function InteractiveDoshaSphere() {
 
     animate();
 
-    // Handle Resize
     const handleResize = () => {
       if (!mountRef.current) return;
-      const w = mountRef.current.clientWidth;
-      const h = mountRef.current.clientHeight;
+      const rect = mountRef.current.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
