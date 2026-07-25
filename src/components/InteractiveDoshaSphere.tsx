@@ -1,277 +1,286 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
 import { Wind, Flame, Leaf, Sparkles } from 'lucide-react';
 
 type DoshaType = 'vata' | 'pitta' | 'kapha';
 
+interface Particle {
+  x: number;
+  y: number;
+  z: number;
+  baseX: number;
+  baseY: number;
+  baseZ: number;
+  color: { r: number; g: number; b: number };
+  speed: number;
+  angle: number;
+  r: number;
+}
+
 export default function InteractiveDoshaSphere() {
-  const mountRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [activeDosha, setActiveDosha] = useState<DoshaType>('pitta');
   const activeDoshaRef = useRef<DoshaType>('pitta');
 
-  // Keep ref in sync for render loop
   useEffect(() => {
     activeDoshaRef.current = activeDosha;
   }, [activeDosha]);
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
 
-    const rect = mountRef.current.getBoundingClientRect();
-    const width = rect.width || 400;
-    const height = rect.height || 320;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    // Scene
-    const scene = new THREE.Scene();
+    // Set dimensions
+    let width = container.clientWidth || 380;
+    let height = 300;
+    canvas.width = width;
+    canvas.height = height;
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.z = 250;
+    const particleCount = 1000;
+    const particles: Particle[] = [];
+    const sphereRadius = 65;
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    mountRef.current.appendChild(renderer.domElement);
-
-    // Particles configuration
-    const particleCount = 2000;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const baseSpeeds = new Float32Array(particleCount);
-    const baseAngles = new Float32Array(particleCount);
-    const radii = new Float32Array(particleCount);
-
-    // Distribute points on a sphere
-    const radius = 60;
+    // Distribute particles uniformly using Fibonacci sphere algorithm
     for (let i = 0; i < particleCount; i++) {
-      // Golden spiral distribution (Fibonacci sphere)
-      const phi = Math.acos(1 - 2 * i / particleCount);
+      const phi = Math.acos(1 - (2 * i) / particleCount);
       const theta = Math.PI * (1 + Math.sqrt(5)) * i;
 
-      const x = Math.cos(theta) * Math.sin(phi) * radius;
-      const y = Math.sin(theta) * Math.sin(phi) * radius;
-      const z = Math.cos(phi) * radius;
+      const x = Math.cos(theta) * Math.sin(phi) * sphereRadius;
+      const y = Math.sin(theta) * Math.sin(phi) * sphereRadius;
+      const z = Math.cos(phi) * sphereRadius;
 
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
-
-      // Base speeds and angles for dynamic motion
-      baseSpeeds[i] = 0.5 + Math.random() * 1.5;
-      baseAngles[i] = Math.random() * Math.PI * 2;
-      radii[i] = radius;
-
-      // Initial color (Pitta - orange/gold)
-      colors[i * 3] = 0.9 + Math.random() * 0.1; // R
-      colors[i * 3 + 1] = 0.5 + Math.random() * 0.3; // G
-      colors[i * 3 + 2] = 0.1; // B
+      particles.push({
+        x,
+        y,
+        z,
+        baseX: x,
+        baseY: y,
+        baseZ: z,
+        color: { r: 245, g: 158, b: 11 }, // Default Pitta Orange
+        speed: 0.2 + Math.random() * 0.8,
+        angle: Math.random() * Math.PI * 2,
+        r: sphereRadius,
+      });
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    // Particle texture (soft circle)
-    const canvas = document.createElement('canvas');
-    canvas.width = 16;
-    canvas.height = 16;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      const grad = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
-      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 16, 16);
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-
-    // Material
-    const material = new THREE.PointsMaterial({
-      size: 2.2,
-      map: texture,
-      vertexColors: true,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-
-    // Points object
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
-
-    // Mouse interaction states
+    // Interaction states
     let mouseX = 0;
     let mouseY = 0;
-    let targetRotationX = 0;
-    let targetRotationY = 0;
+    let isHovering = false;
+    let rotationX = 0.5;
+    let rotationY = 0.5;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
 
-    const onMouseMove = (event: MouseEvent) => {
-      const rect = mountRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      // Normalised coordinates (-1 to 1)
-      mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      targetRotationY = mouseX * 0.5;
-      targetRotationX = -mouseY * 0.5;
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left - width / 2;
+      mouseY = e.clientY - rect.top - height / 2;
+      isHovering = true;
     };
 
-    window.addEventListener('mousemove', onMouseMove);
+    const handleMouseLeave = () => {
+      isHovering = false;
+    };
 
-    // Dynamic color transition variables
-    const currentColors = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i++) {
-      currentColors[i] = colors[i];
-    }
+    const handleMouseDown = (e: MouseEvent) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+    };
 
-    // Animation loop
-    let clock = new THREE.Clock();
-    let animationId: number;
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      rotationY += dx * 0.005;
+      rotationX += dy * 0.005;
+      startX = e.clientX;
+      startY = e.clientY;
+    };
+
+    const handleWindowMouseUp = () => {
+      isDragging = false;
+    };
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    let animationFrameId: number;
+    let time = 0;
+
+    // 3D Projection parameters
+    const fov = 180;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
     const animate = () => {
-      animationId = requestAnimationFrame(animate);
+      time += 0.016;
+      ctx.clearRect(0, 0, width, height);
 
-      const time = clock.getElapsedTime();
       const mode = activeDoshaRef.current;
 
-      // Rotate points toward mouse
-      points.rotation.y += (targetRotationY - points.rotation.y) * 0.05;
-      points.rotation.x += (targetRotationX - points.rotation.x) * 0.05;
-
-      const posArr = geometry.attributes.position.array as Float32Array;
-      const colorArr = geometry.attributes.color.array as Float32Array;
+      // Slow idle rotation when not dragging
+      if (!isDragging) {
+        rotationY += 0.003;
+        rotationX += 0.001;
+      }
 
       // Target colors per mode
-      let targetR = 0.9, targetG = 0.5, targetB = 0.1; // Pitta default
-      if (mode === 'vata') {
-        targetR = 0.2; targetG = 0.7; targetB = 0.9; // Vata: Cyan/Blue
-      } else if (mode === 'kapha') {
-        targetR = 0.1; targetG = 0.8; targetB = 0.4; // Kapha: Emerald
-      }
+      let targetColor = { r: 245, g: 158, b: 11 }; // Pitta orange
+      if (mode === 'vata') targetColor = { r: 6, g: 182, b: 212 }; // Vata cyan
+      if (mode === 'kapha') targetColor = { r: 16, g: 185, b: 129 }; // Kapha emerald
 
-      for (let i = 0; i < particleCount; i++) {
-        // Retrieve original spherical positions
-        const phi = Math.acos(1 - 2 * i / particleCount);
-        const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-        
-        let r = radius;
-        let speedMultiplier = 1;
+      // Update and rotate particles
+      const projected: any[] = [];
 
+      particles.forEach((p, idx) => {
+        let currentRadius = sphereRadius;
+
+        // Apply Dosha animations to particles coordinates
         if (mode === 'vata') {
-          // Vata: Wind swirling and expansion/contraction, rapid chaos
-          speedMultiplier = 2.5;
-          const noise = Math.sin(time * 8 + i) * 6;
-          r = radius + noise;
-          
-          // Rapid rotation around Y axis
-          const curTheta = theta + time * baseSpeeds[i] * 0.3 * speedMultiplier;
-          posArr[i * 3] = Math.cos(curTheta) * Math.sin(phi) * r;
-          posArr[i * 3 + 1] = Math.sin(curTheta) * Math.sin(phi) * r + Math.cos(time * 2 + i) * 3;
-          posArr[i * 3 + 2] = Math.cos(phi) * r;
-          
-          // Color Lerping
-          colorArr[i * 3] += (targetR + Math.sin(time + i)*0.1 - colorArr[i * 3]) * 0.05;
-          colorArr[i * 3 + 1] += (targetG + Math.cos(time + i)*0.1 - colorArr[i * 3 + 1]) * 0.05;
-          colorArr[i * 3 + 2] += (targetB - colorArr[i * 3 + 2]) * 0.05;
-          
+          // Swirling wind noise
+          const noise = Math.sin(time * 5 + idx * 0.05) * 8;
+          currentRadius = sphereRadius + noise;
+          p.angle += p.speed * 0.08;
         } else if (mode === 'pitta') {
-          // Pitta: Heat pulse (outward solar flares)
-          speedMultiplier = 1.5;
-          const pulse = Math.sin(time * 5 + i * 0.1) * 8;
-          r = radius + Math.max(0, pulse);
-          
-          const curTheta = theta + time * baseSpeeds[i] * 0.1 * speedMultiplier;
-          posArr[i * 3] = Math.cos(curTheta) * Math.sin(phi) * r;
-          posArr[i * 3 + 1] = Math.sin(curTheta) * Math.sin(phi) * r;
-          posArr[i * 3 + 2] = Math.cos(phi) * r;
-
-          // Color Lerping (pulsing warmth)
-          const firePulse = Math.sin(time * 3 + i) * 0.1;
-          colorArr[i * 3] += (targetR + firePulse - colorArr[i * 3]) * 0.05;
-          colorArr[i * 3 + 1] += (targetG + firePulse - colorArr[i * 3 + 1]) * 0.05;
-          colorArr[i * 3 + 2] += (targetB - colorArr[i * 3 + 2]) * 0.05;
-
+          // Heat pulse / expansion
+          const pulse = Math.sin(time * 4 + idx * 0.1) * 7;
+          currentRadius = sphereRadius + Math.max(-5, pulse);
+          p.angle += p.speed * 0.03;
         } else if (mode === 'kapha') {
-          // Kapha: Steady, structured, heavy rotation
-          speedMultiplier = 0.4;
-          r = radius + Math.sin(time + i * 0.05) * 2; // minor ripple
-
-          const curTheta = theta + time * baseSpeeds[i] * 0.05 * speedMultiplier;
-          posArr[i * 3] = Math.cos(curTheta) * Math.sin(phi) * r;
-          posArr[i * 3 + 1] = Math.sin(curTheta) * Math.sin(phi) * r;
-          posArr[i * 3 + 2] = Math.cos(phi) * r;
-
-          // Color Lerping
-          colorArr[i * 3] += (targetR - colorArr[i * 3]) * 0.05;
-          colorArr[i * 3 + 1] += (targetG + Math.sin(time + i)*0.05 - colorArr[i * 3 + 1]) * 0.05;
-          colorArr[i * 3 + 2] += (targetB - colorArr[i * 3 + 2]) * 0.05;
+          // Steady rotate
+          currentRadius = sphereRadius + Math.sin(time + idx * 0.02) * 2;
+          p.angle += p.speed * 0.01;
         }
 
-        // Add subtle mouse gravitational attraction
-        if (mouseX !== 0 || mouseY !== 0) {
-          const dx = posArr[i * 3] - (mouseX * radius);
-          const dy = posArr[i * 3 + 1] - (mouseY * radius);
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 40) {
-            const force = (40 - dist) * 0.05;
-            posArr[i * 3] += mouseX * force;
-            posArr[i * 3 + 1] += mouseY * force;
+        // Apply rotation to base position
+        const cosTheta = Math.cos(p.angle);
+        const sinTheta = Math.sin(p.angle);
+        
+        let lx = p.baseX;
+        let ly = p.baseY;
+        let lz = p.baseZ;
+
+        // Apply dynamic radius
+        const length = Math.sqrt(lx*lx + ly*ly + lz*lz);
+        lx = (lx / length) * currentRadius;
+        ly = (ly / length) * currentRadius;
+        lz = (lz / length) * currentRadius;
+
+        // Apply mouse attraction/repulsion forces
+        if (isHovering) {
+          const dx = lx - mouseX;
+          const dy = ly - mouseY;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 50) {
+            const force = (50 - dist) * 0.06;
+            lx += (mouseX / 2) * force * 0.02;
+            ly += (mouseY / 2) * force * 0.02;
           }
         }
-      }
 
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.color.needsUpdate = true;
+        // 3D Rotations
+        // 1. Rotate Y (yaw)
+        const cosY = Math.cos(rotationY);
+        const sinY = Math.sin(rotationY);
+        let x1 = lx * cosY - lz * sinY;
+        let z1 = lx * sinY + lz * cosY;
 
-      // Slow orbital rotate the entire particle system
-      points.rotation.y += 0.001;
+        // 2. Rotate X (pitch)
+        const cosX = Math.cos(rotationX);
+        const sinX = Math.sin(rotationX);
+        let y2 = ly * cosX - z1 * sinX;
+        let z2 = ly * sinX + z1 * cosX;
 
-      renderer.render(scene, camera);
+        // Color transitions
+        p.color.r += (targetColor.r - p.color.r) * 0.08;
+        p.color.g += (targetColor.g - p.color.g) * 0.08;
+        p.color.b += (targetColor.b - p.color.b) * 0.08;
+
+        // Perspective projection
+        const scale = fov / (fov + z2);
+        const screenX = centerX + x1 * scale;
+        const screenY = centerY + y2 * scale;
+
+        projected.push({
+          x: screenX,
+          y: screenY,
+          z: z2,
+          scale,
+          color: { ...p.color },
+        });
+      });
+
+      // Depth sort particles so front particles cover back particles
+      projected.sort((a, b) => b.z - a.z);
+
+      // Render particles
+      projected.forEach((p) => {
+        const size = Math.max(0.5, p.scale * 1.8);
+        const alpha = Math.max(0.1, Math.min(1, (p.z + sphereRadius) / (sphereRadius * 2)));
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        
+        ctx.fillStyle = `rgba(${Math.round(p.color.r)}, ${Math.round(p.color.g)}, ${Math.round(p.color.b)}, ${alpha * 0.85})`;
+        ctx.fill();
+
+        // Dynamic bloom effect for bright particles in front
+        if (p.z < -20) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, size * 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${Math.round(p.color.r)}, ${Math.round(p.color.g)}, ${Math.round(p.color.b)}, ${alpha * 0.15})`;
+          ctx.fill();
+        }
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
     };
 
     animate();
 
     const handleResize = () => {
-      if (!mountRef.current) return;
-      const rect = mountRef.current.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      if (w === 0 || h === 0) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      width = container.clientWidth || 380;
+      canvas.width = width;
     };
 
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationId);
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
-      geometry.dispose();
-      material.dispose();
-      texture.dispose();
-      renderer.dispose();
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-6 bg-white/40 backdrop-blur-md border border-slate-100 rounded-3xl shadow-xl relative glass-premium overflow-hidden">
+    <div
+      ref={containerRef}
+      className="w-full flex flex-col items-center justify-center p-6 bg-white/40 backdrop-blur-md border border-slate-100 rounded-3xl shadow-xl relative glass-premium overflow-hidden"
+    >
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary-100/10 rounded-full filter blur-xl"></div>
-      
-      {/* 3D Canvas Mount Point */}
+
+      {/* 3D Interactive Canvas */}
       <div className="w-full h-[280px] md:h-[320px] flex items-center justify-center relative cursor-grab active:cursor-grabbing">
-        <div ref={mountRef} className="w-full h-full absolute inset-0 flex items-center justify-center" />
-        
+        <canvas ref={canvasRef} className="w-full h-full absolute inset-0 block" />
+
         {/* Floating Indicator */}
-        <div className="absolute bottom-2 bg-slate-900/80 backdrop-blur-md border border-slate-700/50 text-[10px] text-slate-300 font-extrabold uppercase px-3 py-1.5 rounded-full shadow-lg tracking-wider flex items-center space-x-1.5 pointer-events-none">
+        <div className="absolute bottom-2 bg-slate-900/85 backdrop-blur-md border border-slate-800/80 text-[10px] text-slate-300 font-extrabold uppercase px-3.5 py-1.5 rounded-full shadow-lg tracking-wider flex items-center space-x-1.5 pointer-events-none">
           <Sparkles className="w-3.5 h-3.5 text-gold-400 animate-pulse" />
           <span>Interactive 3D energy matrix</span>
         </div>
