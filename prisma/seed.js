@@ -1,16 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
-const adapter = new PrismaBetterSqlite3({
-  url: 'file:./dev.db',
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Seeding database...');
 
-  // Clean existing data
+  // Clean existing data (order matters for foreign keys)
+  await prisma.cartItem.deleteMany({});
   await prisma.medicine.deleteMany({});
   await prisma.auditLog.deleteMany({});
   await prisma.notification.deleteMany({});
@@ -18,6 +20,7 @@ async function main() {
   await prisma.review.deleteMany({});
   await prisma.payment.deleteMany({});
   await prisma.labReport.deleteMany({});
+  await prisma.aIChatSession.deleteMany({});
   await prisma.prescription.deleteMany({});
   await prisma.consultation.deleteMany({});
   await prisma.appointment.deleteMany({});
@@ -165,12 +168,12 @@ async function main() {
   });
   console.log('Seeded Ayurvedic Medicine Catalog.');
 
-  // 6. Seed some initial audit logs
+  // 6. Seed initial audit log
   await prisma.auditLog.create({
     data: {
       actorUserId: adminUser.id,
       action: 'SYSTEM_SEED',
-      metadata: JSON.stringify({ message: 'Database initial seed execution' }),
+      metadata: JSON.stringify({ message: 'Database initial seed execution (PostgreSQL)' }),
     },
   });
 
