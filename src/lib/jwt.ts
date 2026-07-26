@@ -1,8 +1,19 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'ayurcare_super_secret_jwt_key_12345!';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'ayurcare_super_secret_jwt_refresh_key_67890!';
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `${name} must be set as an environment variable. ` +
+      'Refusing to start with an insecure default.'
+    );
+  }
+  return value;
+}
+
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const JWT_REFRESH_SECRET = requireEnv('JWT_REFRESH_SECRET');
 
 export interface TokenPayload {
   userId: string;

@@ -46,24 +46,31 @@ export async function POST(request: Request) {
     if (!patient) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { doctorId, scheduledAt, type, familyMemberId, feePaid } = body;
+    const { doctorId, scheduledAt, type, familyMemberId, paymentIntentId } = body;
 
-    if (!doctorId || !scheduledAt || !type || !feePaid) {
-      return NextResponse.json({ error: 'Missing appointment scheduling parameters' }, { status: 400 });
+    if (!doctorId || !scheduledAt || !type || !paymentIntentId) {
+      return NextResponse.json(
+        { error: 'Missing required fields: doctorId, scheduledAt, type, paymentIntentId' },
+        { status: 400 }
+      );
     }
 
-    // Double check doctor is approved
+    // Verify doctor is approved
     const doctorProfile = await prisma.doctorProfile.findUnique({
       where: { userId: doctorId },
     });
 
     if (!doctorProfile || !doctorProfile.isApproved) {
-      return NextResponse.json({ error: 'This physician cannot accept consultations at this time.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'This physician cannot accept consultations at this time.' },
+        { status: 400 }
+      );
     }
 
     const scheduledDate = new Date(scheduledAt);
 
-    // Book in transaction: create appointment and complete mock payment SUCCESS
+    // Create appointment as PENDING — it will be confirmed ONLY when the
+    // Stripe webhook receives a payment_intent.succeeded event.
     const newAppointment = await prisma.$transaction(async (tx: any) => {
       const appointment = await tx.appointment.create({
         data: {
@@ -72,79 +79,25 @@ export async function POST(request: Request) {
           familyMemberId: familyMemberId || null,
           scheduledAt: scheduledDate,
           type,
-          status: 'CONFIRMED', // Auto-confirmed on payment success
-          feePaid: parseFloat(feePaid),
+          status: 'PENDING',
+          feePaid: doctorProfile.feePerConsult,
         },
       });
 
-      // Calculate platform commission (e.g. 15% standard rate)
-      const commission = parseFloat(feePaid) * 0.15;
-
+      // Create payment record as PENDING — will be updated by webhook
+      const commission = doctorProfile.feePerConsult * 0.15;
       await tx.payment.create({
         data: {
           appointmentId: appointment.id,
-          amount: parseFloat(feePaid),
+          amount: doctorProfile.feePerConsult,
           commission,
-          status: 'SUCCESS',
-          gatewayRefId: `ch_mock_${Math.random().toString(36).substring(7)}`,
-        },
-      });
-
-      // Add doctor notification
-      await tx.notification.create({
-        data: {
-          userId: doctorId,
-          message: `New consultation booked by ${patient.name} for ${scheduledDate.toLocaleString()}`,
-          type: 'APPOINTMENT',
+          status: 'PENDING',
+          gatewayRefId: paymentIntentId,
         },
       });
 
       return appointment;
     });
-
-    // Fetch Doctor and Patient details for confirmation email
-    const docUser = await prisma.user.findUnique({
-      where: { id: doctorId },
-    });
-    const patUser = await prisma.user.findUnique({
-      where: { id: patient.userId },
-    });
-
-    if (docUser && patUser) {
-      const meetUrl = `http://localhost:3000/meet/${newAppointment.id}`;
-      
-      // Send confirmation to Patient
-      try {
-        const { sendAppointmentConfirmationEmail } = require('@/lib/email');
-        await sendAppointmentConfirmationEmail({
-          toEmail: patUser.email,
-          recipientName: patUser.name,
-          doctorName: docUser.name,
-          patientName: patUser.name,
-          scheduledAt: scheduledDate,
-          meetUrl,
-          isDoctor: false
-        });
-      } catch (e) {
-        console.error('Failed to send email to patient:', e);
-      }
-
-      // Send confirmation to Doctor
-      try {
-        const { sendAppointmentConfirmationEmail } = require('@/lib/email');
-        await sendAppointmentConfirmationEmail({
-          toEmail: docUser.email,
-          recipientName: docUser.name,
-          doctorName: docUser.name,
-          patientName: patUser.name,
-          scheduledAt: scheduledDate,
-          meetUrl,
-          isDoctor: true
-        });
-      } catch (e) {
-        console.error('Failed to send email to doctor:', e);
-      }
-    }
 
     // Write audit log
     await prisma.auditLog.create({
@@ -152,12 +105,16 @@ export async function POST(request: Request) {
         actorUserId: patient.userId,
         action: 'PATIENT_BOOK_APPOINTMENT',
         targetUserId: doctorId,
-        metadata: JSON.stringify({ appointmentId: newAppointment.id, feePaid }),
+        metadata: JSON.stringify({
+          appointmentId: newAppointment.id,
+          paymentIntentId,
+          status: 'PENDING',
+        }),
       },
     });
 
     return NextResponse.json({
-      message: 'Consultation booked and mock payment processed successfully!',
+      message: 'Appointment created. Awaiting payment confirmation.',
       appointment: newAppointment,
     });
   } catch (error: any) {
