@@ -34,6 +34,9 @@ model User {
   assignedTickets     SupportTicket[]   @relation("AssignedAdmin")
   couponUsages        CouponUsage[]
   wallet              Wallet?
+  adminSecurityProfile AdminSecurityProfile?
+  activeSessions      ActiveSession[]
+  securityAlerts      SecurityAlert[]
 }
 
 model RefreshToken {
@@ -221,6 +224,8 @@ model AuditLog {
   targetPatientId String?
   targetPatient   PatientProfile? @relation("TargetPatient", fields: [targetPatientId], references: [userId], onDelete: SetNull)
   metadata        String?         // JSON string of extra metadata
+  ipAddress       String?
+  userAgent       String?
   timestamp       DateTime        @default(now())
 }
 
@@ -350,4 +355,40 @@ model RefundRecord {
   stripeRefundId String?
   createdAt      DateTime @default(now())
 }
+
+model AdminSecurityProfile {
+  userId      String   @id
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totpSecret  String?
+  totpEnabled Boolean  @default(false)
+  adminRole   String   @default("SUPER_ADMIN") // "SUPER_ADMIN", "FINANCE_ADMIN", "SUPPORT_ADMIN"
+  permissions String   @default("*") // JSON string or "*"
+  ipAllowlist String?  // JSON array of allowed IPs
+  updatedAt   DateTime @updatedAt
+}
+
+model ActiveSession {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String   @unique
+  ipAddress    String?
+  userAgent    String?
+  isRevoked    Boolean  @default(false)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+}
+
+model SecurityAlert {
+  id         String   @id @default(uuid())
+  severity   String   // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  alertType  String   // "FAILED_ADMIN_LOGIN", "NEW_IP_LOGIN", "SUSPICIOUS_ACCESS", "SESSION_REVOKED"
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ipAddress  String?
+  details    String?  // JSON string
+  isResolved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
 
