@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* Brand palette */
   --color-bg: #0F1210;
   --color-bg-card: #171B17;
   --color-ink: #F5F1E8;
@@ -14,6 +15,53 @@
   --color-parchment: #FAF7F0;
   --color-ink-light: #14170F;
 
+  /* Cream backgrounds */
+  --color-cream: #FAF7F0;
+  --color-cream-dark: #F2EDE4;
+
+  /* Primary green color scale (for buttons, cards, links across portal) */
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-300: #86efac;
+  --color-primary-400: #4ade80;
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-primary-700: #15803d;
+  --color-primary-750: #114223;
+  --color-primary-800: #166534;
+  --color-primary-850: #0f291e;
+  --color-primary-900: #14532d;
+  --color-primary-950: #052e16;
+
+  /* Gold color scale */
+  --color-gold-50: #fffbeb;
+  --color-gold-100: #fef3c7;
+  --color-gold-200: #fde68a;
+  --color-gold-300: #fcd34d;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+  --color-gold-600: #d97706;
+  --color-gold-700: #b45309;
+  --color-gold-800: #92400e;
+  --color-gold-900: #78350f;
+  --color-gold-950: #451a03;
+
+  /* Non-standard slate/rose steps used in portal views */
+  --color-slate-150: #f1f5f9;
+  --color-slate-350: #cbd5e1;
+  --color-slate-805: #1e293b;
+  --color-slate-850: #0f172a;
+  --color-rose-750: #881337;
+
+  /* CSS variables mapping */
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+
+  /* Fonts */
   --font-display: 'Fraunces', serif;
   --font-sans: 'Inter', system-ui, sans-serif;
 }
