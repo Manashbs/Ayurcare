@@ -32,6 +32,8 @@ model User {
   notifications       Notification[]
   supportTickets      SupportTicket[]
   assignedTickets     SupportTicket[]   @relation("AssignedAdmin")
+  couponUsages        CouponUsage[]
+  wallet              Wallet?
 }
 
 model RefreshToken {
@@ -79,6 +81,7 @@ model DoctorProfile {
   appointments    Appointment[]
   reviews         Review[]
   prescriptions   Prescription[]
+  payoutBatches   PayoutBatch[]
 }
 
 model PatientProfile {
@@ -192,6 +195,8 @@ model Payment {
   status        String      // PENDING, SUCCESS, FAILED
   gatewayRefId  String?
   createdAt     DateTime    @default(now())
+
+  refunds       RefundRecord[]
 }
 
 model Review {
@@ -260,3 +265,89 @@ model CartItem {
   quantity  Int      @default(1)
   addedAt   DateTime @default(now())
 }
+
+model Coupon {
+  id                 String        @id @default(uuid())
+  code               String        @unique
+  discountType       String        // "FLAT", "PERCENT"
+  discountValue      Float
+  minOrderValue      Float         @default(0)
+  maxDiscountAmount  Float?        // Optional cap for percentage coupons
+  maxUsesTotal       Int           @default(100)
+  usedCount          Int           @default(0)
+  perUserLimit       Int           @default(1)
+  applicableDoctorId String?       // Null = applicable to all doctors
+  consultationType   String?       // "CHAT", "AUDIO", "VIDEO", or Null for all
+  startDate          DateTime      @default(now())
+  expiryDate         DateTime
+  isActive           Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+
+  usages             CouponUsage[]
+}
+
+model CouponUsage {
+  id             String   @id @default(uuid())
+  couponId       String
+  coupon         Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointmentId  String?
+  discountAmount Float
+  usedAt         DateTime @default(now())
+}
+
+model Wallet {
+  userId       String              @id
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Float               @default(0.0)
+  updatedAt    DateTime            @updatedAt
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [userId], onDelete: Cascade)
+  type        String   // "CREDIT", "DEBIT", "REFUND", "LOYALTY", "PROMO"
+  amount      Float
+  description String
+  referenceId String?  // Appointment ID or Stripe Refund ID
+  createdAt   DateTime @default(now())
+}
+
+model CommissionConfig {
+  id             String   @id @default(uuid())
+  tierName       String   @unique // "STANDARD", "GOLD", "PLATINUM", "SPECIALIST"
+  commissionRate Float    // e.g. 0.15 for 15%, 0.10 for 10%
+  description    String?
+  updatedBy      String
+  updatedAt      DateTime @updatedAt
+}
+
+model PayoutBatch {
+  id           String        @id @default(uuid())
+  doctorId     String
+  doctor       DoctorProfile @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  amount       Float
+  status       String        @default("PENDING") // "PENDING", "HOLD", "PROCESSING", "COMPLETED", "FAILED"
+  payoutMethod String        // "BANK_TRANSFER", "UPI"
+  payoutRef    String?
+  holdReason   String?
+  processedAt  DateTime?
+  createdAt    DateTime      @default(now())
+}
+
+model RefundRecord {
+  id             String   @id @default(uuid())
+  paymentId      String
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  amount         Float
+  reason         String
+  refundType     String   // "FULL", "PARTIAL", "WALLET_CREDIT"
+  processedBy    String   // Admin user ID or "SYSTEM"
+  stripeRefundId String?
+  createdAt      DateTime @default(now())
+}
+

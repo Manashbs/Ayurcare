@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { doctorId, scheduledAt, type, familyMemberId } = body;
+    const { doctorId, scheduledAt, type, familyMemberId, couponCode } = body;
 
     if (!doctorId || !scheduledAt || !type) {
       return NextResponse.json(
@@ -46,9 +46,53 @@ export async function POST(request: Request) {
       );
     }
 
-    const amountInPaisa = Math.round(doctorProfile.feePerConsult * 100);
+    let finalFee = doctorProfile.feePerConsult;
+    let discountAmount = 0;
+    let appliedCouponId: string | null = null;
 
-    // Create a Stripe PaymentIntent with the server-side authoritative amount
+    // Validate coupon code server-side if provided
+    if (couponCode) {
+      const codeUpper = String(couponCode).trim().toUpperCase();
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: codeUpper },
+      });
+
+      const now = new Date();
+      if (
+        coupon &&
+        coupon.isActive &&
+        now >= coupon.startDate &&
+        now <= coupon.expiryDate &&
+        coupon.usedCount < coupon.maxUsesTotal &&
+        (!coupon.applicableDoctorId || coupon.applicableDoctorId === doctorId) &&
+        (!coupon.consultationType || coupon.consultationType === type) &&
+        finalFee >= coupon.minOrderValue
+      ) {
+        // Check per-user limit
+        const userUsageCount = await prisma.couponUsage.count({
+          where: { couponId: coupon.id, userId: patient.userId },
+        });
+
+        if (userUsageCount < coupon.perUserLimit) {
+          if (coupon.discountType === 'FLAT') {
+            discountAmount = Math.min(coupon.discountValue, finalFee);
+          } else if (coupon.discountType === 'PERCENT') {
+            const rawDiscount = finalFee * (coupon.discountValue / 100);
+            discountAmount = coupon.maxDiscountAmount
+              ? Math.min(rawDiscount, coupon.maxDiscountAmount)
+              : rawDiscount;
+          }
+
+          discountAmount = Math.round(discountAmount * 100) / 100;
+          finalFee = Math.max(0, finalFee - discountAmount);
+          appliedCouponId = coupon.id;
+        }
+      }
+    }
+
+    const amountInPaisa = Math.round(finalFee * 100);
+
+    // Create a Stripe PaymentIntent with the server-side authoritative discounted amount
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInPaisa,
       currency: 'inr',
@@ -59,12 +103,19 @@ export async function POST(request: Request) {
         type,
         familyMemberId: familyMemberId || '',
         feePerConsult: doctorProfile.feePerConsult.toString(),
+        discountAmount: discountAmount.toString(),
+        finalFee: finalFee.toString(),
+        couponCode: couponCode || '',
+        couponId: appliedCouponId || '',
       },
     });
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
-      amount: doctorProfile.feePerConsult,
+      amount: finalFee,
+      originalAmount: doctorProfile.feePerConsult,
+      discountAmount,
+      couponCode: couponCode || null,
       paymentIntentId: paymentIntent.id,
     });
   } catch (error: any) {
