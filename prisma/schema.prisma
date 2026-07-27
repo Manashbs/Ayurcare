@@ -391,4 +391,27 @@ model SecurityAlert {
   createdAt  DateTime @default(now())
 }
 
+model FeatureFlag {
+  id            String   @id @default(uuid())
+  key           String   @unique
+  name          String
+  description   String?
+  isEnabled     Boolean  @default(true)
+  targetSegment String   @default("ALL") // "ALL", "PATIENT", "DOCTOR"
+  updatedBy     String?
+  updatedAt     DateTime @updatedAt
+}
+
+model SystemAnnouncement {
+  id         String   @id @default(uuid())
+  title      String
+  message    String
+  targetRole String   @default("ALL") // "ALL", "PATIENT", "DOCTOR"
+  severity   String   @default("INFO") // "INFO", "WARNING", "URGENT"
+  isBanner   Boolean  @default(false)
+  sentBy     String
+  createdAt  DateTime @default(now())
+}
+
+
 
