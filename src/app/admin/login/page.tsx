@@ -14,6 +14,9 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [smsOtpRequired, setSmsOtpRequired] = useState(false);
+  const [smsOtp, setSmsOtp] = useState('');
+  const [maskedPhone, setMaskedPhone] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +37,13 @@ export default function AdminLogin() {
       const data = await res.json();
 
       if (res.ok) {
-        login(data.user);
+        if (data.requiresSmsOtp) {
+          setSmsOtpRequired(true);
+          setMaskedPhone(data.maskedPhone || 'your admin mobile');
+          setPassword('');
+        } else if (data.user) {
+          login(data.user);
+        }
       } else {
         setError(data.error || 'Invalid credentials');
       }
@@ -43,6 +52,35 @@ export default function AdminLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSmsOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/admin-login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: smsOtp }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        login(data.user);
+      } else {
+        setError(data.error || 'Could not verify the SMS code.');
+      }
+    } catch {
+      setError('Failed to reach the authentication server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const returnToPassword = () => {
+    setSmsOtpRequired(false);
+    setSmsOtp('');
+    setError('');
   };
 
   return (
@@ -65,6 +103,44 @@ export default function AdminLogin() {
           </div>
         )}
 
+        {smsOtpRequired ? (
+          <form onSubmit={handleSmsOtpSubmit} className="mt-8 space-y-6">
+            <p className="text-center text-sm text-slate-600">
+              Enter the verification code sent to <strong>{maskedPhone}</strong>.
+            </p>
+            <div>
+              <label htmlFor="admin-sms-otp" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">SMS verification code</label>
+              <input
+                id="admin-sms-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{4,10}"
+                maxLength={10}
+                required
+                value={smsOtp}
+                onChange={(e) => setSmsOtp(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="Enter code"
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-800 text-slate-800 text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || smsOtp.length < 4}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg transition duration-250 flex items-center justify-center disabled:opacity-50 cursor-pointer shadow-md text-sm"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+              Verify and continue
+            </button>
+            <button
+              type="button"
+              onClick={returnToPassword}
+              className="w-full text-sm font-semibold text-slate-500 hover:text-slate-800"
+            >
+              Back to password sign-in
+            </button>
+          </form>
+        ) : (
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div>
             <label htmlFor="admin-email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Admin Email</label>
@@ -110,6 +186,7 @@ export default function AdminLogin() {
             Authenticate God-Mode
           </button>
         </form>
+        )}
 
         <div className="text-center text-xs text-slate-400 mt-8 leading-relaxed">
           Access is monitored under system audit protocols. Authorized access attempts only. IP logged.
