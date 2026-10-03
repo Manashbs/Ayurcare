@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/db';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-06-24.dahlia',
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+import { getStripeClient } from '@/lib/stripe';
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -15,6 +10,13 @@ export async function POST(request: Request) {
   if (!signature) {
     return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 });
   }
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret || !process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Stripe webhook is not configured.' }, { status: 503 });
+  }
+
+  const stripe = getStripeClient();
 
   let event: Stripe.Event;
 
