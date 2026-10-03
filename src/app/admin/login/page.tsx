@@ -74,7 +74,7 @@ export default function AdminLogin() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@ayurcare.com"
+              placeholder="admin@ayurcare.ac.in"
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-800 text-slate-800 text-sm placeholder-slate-300"
             />
           </div>
