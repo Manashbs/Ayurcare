@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAccessToken } from '@/lib/jwt';
 import { prisma } from '@/lib/db';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-06-24.dahlia',
-});
+import { getStripeClient } from '@/lib/stripe';
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -101,7 +97,7 @@ export async function POST(request: Request) {
       // Execute Stripe refund if gatewayRefId exists and is not a mock ID
       if (payment.gatewayRefId && payment.gatewayRefId.startsWith('pi_')) {
         try {
-          const stripeRefund = await stripe.refunds.create({
+          const stripeRefund = await getStripeClient().refunds.create({
             payment_intent: payment.gatewayRefId,
             amount: Math.round(refundAmount * 100), // convert to paisa
             reason: 'requested_by_customer',

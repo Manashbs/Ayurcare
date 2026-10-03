@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAccessToken } from '@/lib/jwt';
 import { prisma } from '@/lib/db';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-06-24.dahlia',
-});
+import { getStripeClient } from '@/lib/stripe';
 
 async function verifyPatient() {
   const cookieStore = await cookies();
@@ -93,7 +89,7 @@ export async function POST(request: Request) {
     const amountInPaisa = Math.round(finalFee * 100);
 
     // Create a Stripe PaymentIntent with the server-side authoritative discounted amount
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripeClient().paymentIntents.create({
       amount: amountInPaisa,
       currency: 'inr',
       metadata: {
