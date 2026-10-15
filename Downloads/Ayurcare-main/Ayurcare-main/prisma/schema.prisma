@@ -1,0 +1,262 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String            @id @default(uuid())
+  role                String            // "ADMIN", "DOCTOR", "PATIENT"
+  email               String            @unique
+  emailVerified       Boolean           @default(false)
+  phone               String?
+  passwordHash        String
+  name                String
+  avatarImage         String?
+  status              String            @default("PENDING") // "ACTIVE", "PENDING", "SUSPENDED", "BANNED"
+  suspensionReason    String?
+  failedLoginAttempts Int               @default(0)
+  lockoutUntil        DateTime?
+  createdAt           DateTime          @default(now())
+  lastLoginAt         DateTime?
+  
+  refreshTokens       RefreshToken[]
+  otpVerifications    OtpVerification[]
+  doctorProfile       DoctorProfile?
+  patientProfile      PatientProfile?
+  
+  auditLogs           AuditLog[]        @relation("Actor")
+  targetAuditLogs     AuditLog[]        @relation("TargetUser")
+  notifications       Notification[]
+  supportTickets      SupportTicket[]
+  assignedTickets     SupportTicket[]   @relation("AssignedAdmin")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  purpose   String   // "SIGNUP", "RESET_PASSWORD"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model DoctorProfile {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qualification   String
+  regNumber       String   @unique
+  specializations String   // Comma-separated list of specializations
+  experienceYears Int
+  bio             String?
+  feePerConsult   Float
+  documents       String   // Comma-separated URLs or names
+  isApproved      Boolean  @default(false)
+  approvalStatus  String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "MORE_INFO"
+  rejectionReason String?
+  avgRating       Float    @default(0)
+  languages       String   @default("English, Hindi")
+  clinicAddress   String?
+  signatureUrl    String?
+  availability    String?  // JSON string storing slots configuration
+  aadhaarNumber   String?
+  faceIdImage     String?
+
+  appointments    Appointment[]
+  reviews         Review[]
+  prescriptions   Prescription[]
+}
+
+model PatientProfile {
+  userId             String          @id
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dob                DateTime?
+  gender             String?
+  bloodGroup         String?
+  doshaType          String?         // Calculated Dosha dominance: "VATA", "PITTA", "KAPHA", etc.
+  allergies          String?         // Comma-separated or custom text
+  chronicConditions  String?         // Comma-separated or custom text
+  lifestyleData      String?         // JSON string: {diet, exercise, stress, sleep, etc.}
+  emergencyContact   String?         // JSON string: {name, relation, phone}
+
+  familyMembers      FamilyMember[]
+  appointments       Appointment[]
+  labReports         LabReport[]
+  aiChatSessions     AIChatSession[]
+  prescriptions      Prescription[]
+  auditLogs          AuditLog[]      @relation("TargetPatient")
+}
+
+model FamilyMember {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [userId], onDelete: Cascade)
+  name             String
+  relation         String
+  dob              DateTime?
+  gender           String?
+  profileData      String?        // JSON string for specific medical info
+
+  appointments     Appointment[]
+}
+
+model Appointment {
+  id             String         @id @default(uuid())
+  patientId      String
+  patient        PatientProfile @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  doctorId       String
+  doctor         DoctorProfile  @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  familyMemberId String?
+  familyMember   FamilyMember?  @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
+  scheduledAt    DateTime
+  type           String         // "CHAT", "AUDIO", "VIDEO"
+  status         String         @default("PENDING") // "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"
+  feePaid        Float
+  createdAt      DateTime       @default(now())
+
+  payment        Payment?
+  consultation   Consultation?
+  reviews        Review[]
+}
+
+model Consultation {
+  id                 String         @id @default(uuid())
+  appointmentId      String         @unique
+  appointment        Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  notes              String?
+  privateDoctorNotes String?
+  diagnosis          String?
+  startedAt          DateTime?
+  endedAt            DateTime?
+
+  prescriptions      Prescription[]
+}
+
+model Prescription {
+  id              String         @id @default(uuid())
+  consultationId  String?
+  consultation    Consultation?  @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  doctorId        String
+  doctor          DoctorProfile  @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  patientId       String
+  patient         PatientProfile @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  medicines       String         // JSON string representation of medicine items
+  dietInstructions String?
+  lifestyleAdvice String?
+  status          String         @default("ACTIVE") // "ACTIVE", "COMPLETED", "DISCONTINUED"
+  pdfUrl          String?
+  assignedAt      DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model LabReport {
+  id          String         @id @default(uuid())
+  patientId   String
+  patient     PatientProfile @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  uploadedBy  String         // e.g. "DOCTOR" or "PATIENT"
+  fileUrl     String
+  description String?
+  uploadedAt  DateTime       @default(now())
+}
+
+model AIChatSession {
+  id               String         @id @default(uuid())
+  patientId        String
+  patient          PatientProfile @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  messages         String         // JSON string for messages list
+  summary          String?
+  flaggedForReview Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+}
+
+model Payment {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  amount        Float
+  commission    Float
+  status        String      // PENDING, SUCCESS, FAILED
+  gatewayRefId  String?
+  createdAt     DateTime    @default(now())
+}
+
+model Review {
+  id            String        @id @default(uuid())
+  appointmentId String
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patientId     String
+  doctorId      String
+  doctor        DoctorProfile @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  rating        Int
+  comment       String?
+  createdAt     DateTime      @default(now())
+}
+
+model AuditLog {
+  id              String          @id @default(uuid())
+  actorUserId     String
+  actor           User            @relation("Actor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  action          String
+  targetUserId    String?
+  targetUser      User?           @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetPatientId String?
+  targetPatient   PatientProfile? @relation("TargetPatient", fields: [targetPatientId], references: [userId], onDelete: SetNull)
+  metadata        String?         // JSON string of extra metadata
+  timestamp       DateTime        @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  type      String   // APPOINTMENT, CHAT, PRESCRIPTION, SYSTEM
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model SupportTicket {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject         String
+  message         String
+  status          String         @default("OPEN") // "OPEN", "IN_PROGRESS", "RESOLVED"
+  assignedAdminId String?
+  assignedAdmin   User?          @relation("AssignedAdmin", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+}
+
+model Medicine {
+  id               String   @id @default(uuid())
+  name             String   @unique
+  dosage           String
+  anupana          String   // vehicle: warm water, honey, milk
+  prescriptionOnly Boolean  @default(false)
+  description      String?
+  createdAt        DateTime @default(now())
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  patientId String
+  name      String
+  dosage    String
+  price     Float    @default(150.0)
+  quantity  Int      @default(1)
+  addedAt   DateTime @default(now())
+}
